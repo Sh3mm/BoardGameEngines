@@ -19,5 +19,4 @@ def count(self):
 
 
 BoardState.__repr__ = board_repr
-BoardState.get_legal_moves = lambda self: self.moves
 BoardState.count = count

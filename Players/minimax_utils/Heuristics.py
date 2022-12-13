@@ -1,5 +1,5 @@
 import numpy as np
-from Avalam.PythonEngine import BoardState
+from Avalam import BoardState
 
 
 def board_pawn_diff(state: BoardState, pid: int):
@@ -9,8 +9,10 @@ def board_pawn_diff(state: BoardState, pid: int):
 
 def ratio_points(state: BoardState, pid: int):
     self_keep, other_keep = (state.board > 0, state.board < 0) if pid == 0 else (state.board < 0, state.board > 0)
-    self_ratio = state.board[self_keep] / state.ratios[self_keep, pid]
-    other_ratio = state.board[other_keep] / state.ratios[other_keep, 1 - pid]
+    self_ratio = state.board[self_keep] / state.ratios[pid, self_keep]
+    other_ratio = state.board[other_keep] / state.ratios[1 - pid, other_keep]
+    #print(state.ratios[1 - pid, other_keep])
+    #print(other_ratio)
 
     self_points = abs(self_ratio.sum())
     other_points = abs(other_ratio.sum())

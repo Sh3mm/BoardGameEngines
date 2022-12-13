@@ -1,7 +1,6 @@
 from typing import Tuple, List, Dict
-from Avalam.PythonEngine import Game
+from Avalam import Game, Player
 from itertools import product
-from Avalam import Player
 
 
 class Arena:

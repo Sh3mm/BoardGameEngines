@@ -17,11 +17,11 @@ def board_setup() -> Tuple[np.ndarray, np.ndarray]:
 
     board = board.reshape((9, 9)).T
 
-    ratio = np.zeros((*board.shape, 2), int)
-    ratio[:, :, 0] = board == 1
-    ratio[:, :, 1] = board == -1
+    ratio = np.zeros((2, *board.shape), int)
+    ratio[0, :, :] = board == 1
+    ratio[1, :, :] = board == -1
 
-    return board.reshape((9, 9)), ratio.reshape((9, 9, 2))
+    return board.reshape((9, 9)), ratio.reshape((2, 9, 9))
 
 
 def gen_moves(board: np.ndarray):

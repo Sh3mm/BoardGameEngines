@@ -1,12 +1,11 @@
 import time
-from Avalam.PythonEngine import BoardState as PState
-from Avalam import Player
+from Avalam import BoardState, Player
 
 
 class Game:
     def __init__(self, p0: Player, p1: Player):
         self.players = [p0, p1]
-        self.boardState = PState()
+        self.boardState = BoardState()
 
     def play(self, results=True):
         turn = 0

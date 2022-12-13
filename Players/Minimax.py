@@ -2,10 +2,9 @@ import time
 from math import inf
 from random import random
 from colorama import Fore
-from Avalam import Player, Move
-from Avalam.PythonEngine import BoardState
+from Avalam import BoardState, Player, Move
 from typing import Set, List, Tuple, Union
-from Players.minimax_utils.heuristics import Heuristic, DepthCalculator
+from Players.minimax_utils import Heuristic, DepthCalculator
 
 
 class MiniMaxPlayer(Player):
@@ -38,17 +37,17 @@ class MiniMaxPlayer(Player):
 
     def minimax_search(
             self, state: BoardState, depth: int, pid: int, max_depth: Union[float, int],
-            prev_actions: List[Move] = None, is_max=True, alpha=-inf, beta=inf
+            prev_actions: List[Move] = None, is_max=True, alpha=-inf, beta=inf, is_final=False
     ) -> Tuple[float, List[Move]]:
         if prev_actions is None:
             prev_actions = []
 
         # terminal state
-        if not state.no_move and len(state.get_legal_moves()) == 0:
+        if not is_final and len(state.get_legal_moves()) == 0:
             return self.get_terminal_score(pid, prev_actions, state)
 
         # Max depth reached
-        if max_depth - depth < random() or state.no_move:
+        if max_depth - depth < random() or is_final:
             return self.heuristic(state, pid), prev_actions
 
         # Min max
@@ -58,12 +57,12 @@ class MiniMaxPlayer(Player):
         actions = state.get_legal_moves()
         for a in actions:
             next_steps = [*prev_actions, a]
-            successor = (state.stack(*a, no_move=True)
-                         if len(actions) > 18 and max_depth - (depth + 1) < random() else
-                         state.stack(*a))
+            #print(next_steps)
+            successor = state.stack(*a)
+            suc_is_final = len(actions) > 18 and max_depth - (depth + 1) < random()
 
             new_value, new_actions = self.minimax_search(
-                successor, depth + 1, pid, max_depth, next_steps, not is_max, alpha, beta
+                successor, depth + 1, pid, max_depth, next_steps, not is_max, alpha, beta, suc_is_final
             )
 
             should_change = new_value > value if is_max else new_value < value

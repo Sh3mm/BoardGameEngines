@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Set
-from Avalam.PythonEngine import BoardState, Move
+from Avalam import BoardState, Move
 
 
 class Player(ABC):
