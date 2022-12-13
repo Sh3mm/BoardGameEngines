@@ -1,6 +1,6 @@
-from avalamEngine import BoardState, Move
-from avalamEngine.Players import Player
-from typing import Set, Tuple
+from Avalam import Player, Move
+from Avalam.RustEngine import BoardState
+from typing import Set
 from random import choice
 
 

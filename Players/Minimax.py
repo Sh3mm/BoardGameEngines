@@ -1,19 +1,17 @@
-from __future__ import annotations
-
-from avalamEngine import BoardState, Move
-from colorama import Fore
-from avalamEngine.Players import Player
 import time
-from typing import Set, List, Tuple, Union
-from avalamEngine.heuristics import Heuristic, DepthCalculator
-from random import random
 from math import inf
+from random import random
+from colorama import Fore
+from Avalam import Player, Move
+from Avalam.PythonEngine import BoardState
+from typing import Set, List, Tuple, Union
+from Players.minimax_utils.heuristics import Heuristic, DepthCalculator
 
 
 class MiniMaxPlayer(Player):
     ENDING_SCORE = 1000  # usage : score in a final state
 
-    def __init__(self, max_depth: Union[float | DepthCalculator], heuristic: Heuristic, p_name: str = None):
+    def __init__(self, max_depth: Union[float, DepthCalculator], heuristic: Heuristic, p_name: str = None):
         self.name = p_name
         self.max_depth = max_depth
         self.heuristic = heuristic

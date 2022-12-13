@@ -10,10 +10,8 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
+
 dependencies = [
     "numpy>=1.23.0",
     "colorama>=0.4.6",
 ]
-
-[tool.maturin]
-python-source = "python"

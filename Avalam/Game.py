@@ -1,21 +1,19 @@
 import time
-from avalamEngine import Board, utils
-from avalamEngine.Players import Player
+from Avalam.PythonEngine import BoardState as PState
+from Avalam import Player
 
 
 class Game:
     def __init__(self, p0: Player, p1: Player):
         self.players = [p0, p1]
-        board = Board(utils.board_setup(9, 9), 5)
-
-        self.boardState = board.base_state()
+        self.boardState = PState()
 
     def play(self, results=True):
         turn = 0
         history = []
         time_data = []
         if results:
-            print(self.players[0].name, 'vs', self.players[1].name)
+            print(self.players[0].get_name(), 'vs', self.players[1].get_name())
         while True:
             player = self.players[turn % 2]
 
@@ -29,6 +27,8 @@ class Game:
 
             history.append(res)
             self.boardState = self.boardState.stack(*res)
+            print(res)
+            print(self.boardState, '\n')
 
             turn += 1
 

@@ -1,4 +1,4 @@
-from rust_engine import BoardState, gen_moves
+from RustEngine import BoardState, gen_moves
 from time import time
 
 x = BoardState()

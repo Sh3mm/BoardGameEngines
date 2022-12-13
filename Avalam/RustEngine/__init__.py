@@ -1,10 +1,10 @@
 import re
 from colorama import Fore
-from .rust_engine import *
+from .RustEngine import *
 
-__doc__ = rust_engine.__doc__
-if hasattr(rust_engine, "__all__"):
-    __all__ = rust_engine.__all__
+__doc__ = RustEngine.__doc__
+if hasattr(RustEngine, "__all__"):
+    __all__ = RustEngine.__all__
 
 
 def board_repr(self):

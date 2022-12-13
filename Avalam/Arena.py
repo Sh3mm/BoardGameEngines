@@ -1,9 +1,7 @@
 from typing import Tuple, List, Dict
-from avalamEngine import Game
+from Avalam.PythonEngine import Game
 from itertools import product
-from avalamEngine.Players import Player, MiniMaxPlayer
-from avalamEngine.heuristics.Heuristics import ratio_diff, board_pawn_diff, sure_ratio_dif
-from avalamEngine.heuristics.DepthCalculators import exp_increase_float, exp_increase_int
+from Avalam import Player
 
 
 class Arena:
@@ -33,15 +31,3 @@ class Arena:
             print(f'{p0.name}: {sum(res[2][1][::2])}\n{p1.name}: {sum(res[2][1][1::2])}\n')
 
         return result
-
-
-if __name__ == '__main__':
-    player_base = MiniMaxPlayer
-    depth_f = [exp_increase_float, 3, 3.5]
-    heuristic_f = [ratio_diff, board_pawn_diff, sure_ratio_dif]
-
-    players = [
-        MiniMaxPlayer(max_depth=df, heuristic=hf, p_name=f'{MiniMaxPlayer}|{df}|{hf}')
-        for df, hf in product(depth_f, heuristic_f)
-    ]
-    Arena.round_robin(players, True)

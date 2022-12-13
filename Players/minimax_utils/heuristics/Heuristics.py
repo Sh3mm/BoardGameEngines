@@ -1,5 +1,5 @@
 import numpy as np
-from avalamEngine import BoardState, Board, utils
+from Avalam.PythonEngine import BoardState
 
 
 def board_pawn_diff(state: BoardState, pid: int):
@@ -52,16 +52,3 @@ def sure_ratio_dif(state: BoardState, pid: int):
     self_rp, other_rp = ratio_points(state, pid)
     self_sp, other_sp = sure_points(state, pid)
     return self_sp + self_rp / 4 - (self_sp + other_rp / 4)
-
-
-if __name__ == '__main__':
-    b = Board(utils.board_setup(4, 4), 5)
-    s = b.base_state()
-    s.board = np.zeros((4, 4))
-    s.board[2, 3] = 3
-    s.board[2, 2] = 2
-    s.board[1, 1] = -1
-    s.board[0, 1] = 1
-    #s.board[0, 3] = -1
-    print(s)
-    print(sure_points(s, 0))

@@ -1,4 +1,4 @@
-from avalamEngine import BoardState
+from Avalam.PythonEngine import BoardState
 from typing import Callable, Union
 
 Heuristic = Callable[[BoardState, int], float]

@@ -1,6 +1,5 @@
 use std::cmp::min;
 use std::collections::HashSet;
-use std::time::Instant;
 use itertools::{iproduct};
 use ndarray::{Array2, Array3, s};
 use numpy::{PyArray2, PyArray3, ndarray::array};
@@ -149,9 +148,7 @@ impl BoardState {
 #[pyfunction]
 pub fn gen_moves(board: &PyArray2<i32>) -> Py<PySet>{
     Python::with_gil(|_py|{
-        let now = Instant::now();
         let board = unsafe { board.as_array() }.mapv(|v| { v.abs() });
-        println!("{}", now.elapsed().as_secs());
         let mut moves = HashSet::<Move>::new();
 
         for (i, j) in iproduct!(0..9, 0..9) {

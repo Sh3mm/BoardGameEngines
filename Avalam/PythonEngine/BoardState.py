@@ -1,17 +1,22 @@
-import numpy as np
-from colorama import Fore
 import re
-from itertools import product, chain
-from typing import Tuple, Set
+import numpy as np
 from copy import copy
-
-Coords = Tuple[int, int]
-Move = Tuple[Coords, Coords]
+from colorama import Fore
+from typing import Set
+from itertools import product
+import Avalam.PythonEngine.utils as utils
+from Avalam.utilsTypes import *
 
 
 class BoardState:
-    def __init__(self, base_board, board_info: Tuple[np.ndarray, np.ndarray], moves: Set, no_move=False):
-        self.base_board = base_board
+    INIT_INFO = utils.board_setup()
+    INIT_MOVES = utils.gen_moves(utils.board_setup()[0])
+
+    def __init__(self, board_info: Tuple[np.ndarray, np.ndarray] = None, moves: Set = None, no_move=False):
+        if board_info is None:
+            board_info = self.INIT_INFO
+            moves = self.INIT_MOVES
+
         self.board, self.ratios = board_info
         self.moves = moves
         self.no_move = no_move
@@ -23,7 +28,7 @@ class BoardState:
         return pos
 
     def copy(self) -> 'BoardState':
-        return BoardState(self.base_board, (self.board.copy(), self.ratios.copy()), copy(self.moves))
+        return BoardState((self.board.copy(), self.ratios.copy()), copy(self.moves))
 
     def stack(self, origin: Coords, dest: Coords, no_move=False) -> 'BoardState':
         if self.no_move:
@@ -48,10 +53,10 @@ class BoardState:
             self.moves.discard(((origin[0] + i, origin[1] + j), origin))
 
         for i, j in product(range(-1, 2), range(-1, 2)):
-            if not (0 <= dest[0] + i < self.base_board.shape[0] and
-                    0 <= dest[1] + j < self.base_board.shape[1]):
+            if not (0 <= dest[0] + i < 9 and
+                    0 <= dest[1] + j < 9):
                 continue
-            if abs(self.board[dest]) + abs(self.board[(dest[0] + i, dest[1] + j)]) > self.base_board.max_height:
+            if abs(self.board[dest]) + abs(self.board[(dest[0] + i, dest[1] + j)]) > 5:
                 self.moves.discard(((dest[0] + i, dest[1] + j), dest))
                 self.moves.discard((dest, (dest[0] + i, dest[1] + j)))
 
