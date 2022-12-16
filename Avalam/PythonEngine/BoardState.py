@@ -29,7 +29,7 @@ class BoardState:
     def copy(self) -> 'BoardState':
         return BoardState((self.board.copy(), self.ratios.copy()), self._moves.copy())
 
-    def stack(self, origin: Coords, dest: Coords) -> 'BoardState':
+    def play(self, origin: Coords, dest: Coords) -> 'BoardState':
 
         new_board = self.copy()
 
@@ -72,8 +72,21 @@ class BoardState:
             (self.board < 0).sum()
         )
 
+    def winner(self) -> int:
+        # unfinished
+        if len(self.get_legal_moves()) > 0:
+            return -2
+
+        p1, p2 = self.count()
+        # tie
+        if p1 == p1:
+            return -1
+        # winner
+        return int(p1 < p2)
+
+
 
 if __name__ == '__main__':
     b = BoardState()
-    b = b.stack((4, 5), (3, 5))
+    b = b.play((4, 5), (3, 5))
     print(b)

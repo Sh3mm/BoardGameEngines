@@ -58,7 +58,7 @@ class MiniMaxPlayer(Player):
         for a in actions:
             next_steps = [*prev_actions, a]
             #print(next_steps)
-            successor = state.stack(*a)
+            successor = state.play(*a)
             suc_is_final = len(actions) > 18 and max_depth - (depth + 1) < random()
 
             new_value, new_actions = self.minimax_search(

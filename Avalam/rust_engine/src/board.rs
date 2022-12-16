@@ -6,15 +6,14 @@ use numpy::{PyArray2, PyArray3, ndarray::array};
 use pyo3::{IntoPy, Py, pyclass, pymethods, Python};
 use pyo3::prelude::PyModule;
 use pyo3::types::{PySet};
-use crate::pyfunction;
 
 
 type Coords = (usize, usize);
 type Move = (Coords, Coords);
 
 
-#[pyclass]
-pub struct BoardState {
+#[pyclass(subclass)]
+pub struct RawBoardState {
     #[pyo3(get, set)]
     board: Py<PyArray2<i32>>,
     #[pyo3(get, set)]
@@ -23,9 +22,9 @@ pub struct BoardState {
     on_move_call: Option<(Coords, Coords)>
 }
 
-unsafe impl Send for BoardState{}
+unsafe impl Send for RawBoardState {}
 
-impl BoardState{
+impl RawBoardState {
     fn base_array() -> Array2<i32>{
         return array![
             [ 0,  0,  1, -1,  0,  0,  0,  0,  0],
@@ -67,14 +66,14 @@ impl BoardState{
 }
 
 #[pymethods]
-impl BoardState {
+impl RawBoardState {
     #[new]
     fn new() -> Self{
         return Python::with_gil(|_py|{
-            let board = PyArray2::from_owned_array(_py, BoardState::base_array()).to_owned();
-            let ratios = PyArray3::from_owned_array(_py, BoardState::base_ratios()).to_owned();
+            let board = PyArray2::from_owned_array(_py, RawBoardState::base_array()).to_owned();
+            let ratios = PyArray3::from_owned_array(_py, RawBoardState::base_ratios()).to_owned();
             let moves = gen_moves(board.as_ref(_py)).into();
-            return BoardState{board, ratios, moves, on_move_call: None}
+            return RawBoardState {board, ratios, moves, on_move_call: None}
         });
     }
 
@@ -89,7 +88,7 @@ impl BoardState {
             self.board.as_ref(_py).copy_to(board).expect("");
             self.ratios.as_ref(_py).copy_to(ratios).expect("");
 
-            BoardState {
+            RawBoardState {
                 board: board.to_owned(),
                 ratios: ratios.to_owned(),
                 moves,
@@ -98,7 +97,7 @@ impl BoardState {
         })
     }
 
-    fn stack(&self, origin: Coords, dest: Coords) -> Self{
+    fn play(&self, origin: Coords, dest: Coords) -> Self{
         let mut new_board = self.copy();
         new_board.on_move_call = Some((origin, dest));
 
@@ -167,7 +166,6 @@ impl BoardState {
     }
 }
 
-#[pyfunction]
 pub fn gen_moves(board: &PyArray2<i32>) -> Py<PySet>{
     Python::with_gil(|_py|{
         let board = unsafe { board.as_array() }.mapv(|v| { v.abs() });

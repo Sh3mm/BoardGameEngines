@@ -2,7 +2,7 @@ import time
 from Avalam import BoardState, Player
 
 
-class Game:
+class Avalam:
     def __init__(self, p0: Player, p1: Player):
         self.players = [p0, p1]
         self.boardState = BoardState()
@@ -25,9 +25,7 @@ class Game:
             time_data.append(time.time() - beg)
 
             history.append(res)
-            self.boardState = self.boardState.stack(*res)
-            print(res)
-            print(self.boardState, '\n')
+            self.boardState = self.boardState.play(*res)
 
             turn += 1
 

@@ -1,6 +1,6 @@
-from .RustEngine import BoardState
+from .PythonEngine import BoardState
 from .utilsTypes import *
 
 from .Player import Player
-from .Game import Game
+from .Avalam import Avalam
 

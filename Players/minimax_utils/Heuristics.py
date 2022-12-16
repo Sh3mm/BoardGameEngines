@@ -1,3 +1,4 @@
+from itertools import product
 import numpy as np
 from Avalam import BoardState
 
@@ -11,8 +12,6 @@ def ratio_points(state: BoardState, pid: int):
     self_keep, other_keep = (state.board > 0, state.board < 0) if pid == 0 else (state.board < 0, state.board > 0)
     self_ratio = state.board[self_keep] / state.ratios[pid, self_keep]
     other_ratio = state.board[other_keep] / state.ratios[1 - pid, other_keep]
-    #print(state.ratios[1 - pid, other_keep])
-    #print(other_ratio)
 
     self_points = abs(self_ratio.sum())
     other_points = abs(other_ratio.sum())
@@ -24,23 +23,32 @@ def sure_points(state: BoardState, pid: int):
     base = np.abs(state.board)
     non_zero = base != 0
     mobile = (base < 5) & non_zero
-    result = np.zeros((9, 9), bool)
-    for i, j in zip(*mobile.nonzero()):
-        if result[i, j]:
+
+    points = {(i, j): v for i, j, v in zip(*mobile.nonzero(), base[mobile])}
+    active = set()
+    for point in points:
+        if point in active:
             continue
-        around = np.ix_(range(max(0, i - 1), min(9, i + 2)), range(max(0, j - 1), min(9, j + 2)))
-        res = (base[around] <= (5 - base[i, j])) & (non_zero[around])
-        if np.sum(res) - (base[i, j] < 3):
-            result[around] |= res
-            result[i, j] = True
-        else:
-            result[i, j] = False
 
-    cell_points = state.board[(result == False) & non_zero]
-    self_cell = (cell_points > 0) if pid == 0 else (cell_points < 0)
+        next_to = [
+            (point[0] + i, point[1] + j) for i, j in product(range(-1, 2), range(-1, 2))
+            if(not (i == j == 0) and
+               9 > point[0] + i >= 0 and 9 > point[1] + j >= 0 and
+               (point[0] + i, point[1] + j) in points)
+        ]
+        active_next = [(i, j) for i, j in next_to if points[(i, j)] + points[point] < 5]
+        if len(active_next) > 0:
+            active_next.append(point)
 
-    self_points = 1 + sum(6 - abs(cell_points[self_cell])) / 5
-    other_points = 1 + sum(6 - abs(cell_points[self_cell == False])) / 5
+        active.update(active_next)
+
+    active.update(zip(*(base < 5).nonzero()))
+    isolated_vals = state.board.take([9 * i + j for i, j in set(points.keys()) - active])
+
+    if pid == 0:
+        self_points, other_points = np.sum(isolated_vals > 0), np.sum(isolated_vals < 0)
+    else:
+        self_points, other_points = np.sum(isolated_vals < 0), np.sum(isolated_vals > 0)
 
     return self_points, other_points
 
@@ -54,3 +62,7 @@ def sure_ratio_dif(state: BoardState, pid: int):
     self_rp, other_rp = ratio_points(state, pid)
     self_sp, other_sp = sure_points(state, pid)
     return self_sp + self_rp / 4 - (self_sp + other_rp / 4)
+
+
+if __name__ == '__main__':
+    b = BoardState()
