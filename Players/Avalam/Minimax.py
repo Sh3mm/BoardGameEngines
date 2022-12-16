@@ -2,9 +2,9 @@ import time
 from math import inf
 from random import random
 from colorama import Fore
-from Avalam import BoardState, Player, Move
+from GameEngines.Avalam import BoardState, Player, Move
 from typing import Set, List, Tuple, Union
-from Players.minimax_utils import Heuristic, DepthCalculator
+from Players.Avalam.minimax_utils import Heuristic, DepthCalculator
 
 
 class MiniMaxPlayer(Player):

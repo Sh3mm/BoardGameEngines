@@ -1,2 +1,1 @@
-from .RandomPlayer import RandomPlayer
-from .Minimax import MiniMaxPlayer
+from Players.Avalam.RandomPlayer import RandomPlayer

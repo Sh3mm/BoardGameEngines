@@ -1,4 +1,4 @@
-from Avalam import Player, Move, BoardState
+from GameEngines.Avalam import Player, Move, BoardState
 from typing import Set
 from random import choice
 

@@ -1,8 +1,8 @@
 import time
-from Avalam import BoardState, Player
+from GameEngines.Avalam import BoardState, Player
 
 
-class Avalam:
+class AvalamGame:
     def __init__(self, p0: Player, p1: Player):
         self.players = [p0, p1]
         self.boardState = BoardState()

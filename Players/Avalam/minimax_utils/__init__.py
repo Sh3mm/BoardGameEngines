@@ -1,5 +1,5 @@
 from typing import Callable
-from Avalam import BoardState
+from GameEngines.Avalam import BoardState
 
 Heuristic = Callable[[BoardState, int], float]
 DepthCalculator = Callable[[BoardState], float]

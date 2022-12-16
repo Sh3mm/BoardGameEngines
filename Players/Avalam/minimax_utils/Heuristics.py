@@ -1,6 +1,6 @@
 from itertools import product
 import numpy as np
-from Avalam import BoardState
+from GameEngines.Avalam import BoardState
 
 
 def board_pawn_diff(state: BoardState, pid: int):

@@ -13,7 +13,7 @@ type Move = (Coords, Coords);
 
 
 #[pyclass(subclass)]
-pub struct RawBoardState {
+pub struct RawAvalamState {
     #[pyo3(get, set)]
     board: Py<PyArray2<i32>>,
     #[pyo3(get, set)]
@@ -22,9 +22,9 @@ pub struct RawBoardState {
     on_move_call: Option<(Coords, Coords)>
 }
 
-unsafe impl Send for RawBoardState {}
+unsafe impl Send for RawAvalamState {}
 
-impl RawBoardState {
+impl RawAvalamState {
     fn base_array() -> Array2<i32>{
         return array![
             [ 0,  0,  1, -1,  0,  0,  0,  0,  0],
@@ -66,14 +66,14 @@ impl RawBoardState {
 }
 
 #[pymethods]
-impl RawBoardState {
+impl RawAvalamState {
     #[new]
     fn new() -> Self{
         return Python::with_gil(|_py|{
-            let board = PyArray2::from_owned_array(_py, RawBoardState::base_array()).to_owned();
-            let ratios = PyArray3::from_owned_array(_py, RawBoardState::base_ratios()).to_owned();
+            let board = PyArray2::from_owned_array(_py, RawAvalamState::base_array()).to_owned();
+            let ratios = PyArray3::from_owned_array(_py, RawAvalamState::base_ratios()).to_owned();
             let moves = gen_moves(board.as_ref(_py)).into();
-            return RawBoardState {board, ratios, moves, on_move_call: None}
+            return RawAvalamState {board, ratios, moves, on_move_call: None}
         });
     }
 
@@ -88,7 +88,7 @@ impl RawBoardState {
             self.board.as_ref(_py).copy_to(board).expect("");
             self.ratios.as_ref(_py).copy_to(ratios).expect("");
 
-            RawBoardState {
+            RawAvalamState {
                 board: board.to_owned(),
                 ratios: ratios.to_owned(),
                 moves,

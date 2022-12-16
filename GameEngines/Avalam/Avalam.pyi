@@ -1,10 +1,8 @@
 from typing import Set, Tuple
 from numpy import ndarray
+from GameEngines.Avalam.utilsTypes import Move, Coords
 
-Coords = Tuple[int, int]
-Move = Tuple[Coords, Coords]
-
-class RawBoardState(object):
+class RawAvalamState(object):
     board: ndarray
     ratios: ndarray
     moves: Set[Move]
@@ -13,9 +11,9 @@ class RawBoardState(object):
 
     def __repr__(self) -> str: ...
 
-    def copy(self) -> RawBoardState: ...
+    def copy(self) -> RawAvalamState: ...
 
-    def play(self, origin: Coords, dest: Coords) -> RawBoardState: ...
+    def play(self, origin: Coords, dest: Coords) -> RawAvalamState: ...
 
     def get_legal_moves(self) -> Set[Move]: ...
 

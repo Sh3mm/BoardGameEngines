@@ -1,10 +1,10 @@
-from Avalam import Avalam
-from Players import MiniMaxPlayer
-from Players.minimax_utils import Heuristics as hs
+from GameEngines.Avalam import AvalamGame
+from Players.Avalam import MiniMaxPlayer
+from Players.Avalam import Heuristics as hs
 
 
 def main():
-    Avalam(MiniMaxPlayer(2, hs.sure_ratio_dif), MiniMaxPlayer(2, hs.sure_ratio_dif)).play()
+    AvalamGame(MiniMaxPlayer(2, hs.sure_ratio_dif), MiniMaxPlayer(2, hs.sure_ratio_dif)).play()
 
 
 if __name__ == '__main__':

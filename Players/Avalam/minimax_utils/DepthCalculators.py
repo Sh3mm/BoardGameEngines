@@ -1,4 +1,4 @@
-from Avalam import BoardState
+from GameEngines.Avalam import BoardState
 
 
 def exp_increase_int(state: BoardState) -> int:

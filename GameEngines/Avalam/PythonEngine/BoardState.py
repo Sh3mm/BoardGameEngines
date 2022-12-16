@@ -3,8 +3,8 @@ import numpy as np
 from colorama import Fore
 from typing import Set
 from itertools import product
-import Avalam.PythonEngine.utils as utils
-from Avalam.utilsTypes import *
+import GameEngines.Avalam.PythonEngine.utils as utils
+from GameEngines.Avalam.utilsTypes import *
 
 
 class BoardState:
