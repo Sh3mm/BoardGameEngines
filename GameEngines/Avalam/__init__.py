@@ -1,6 +1,12 @@
-from .BoardState import BoardState
+import GameEngines
 from GameEngines.Avalam import *
-from .utilsTypes import *
+
+__doc__ = GameEngines.Avalam.__doc__
+if hasattr(GameEngines.Avalam, "__all__"):
+    __all__ = GameEngines.Avalam.__all__
+
+from .utilsTypes import Move, Coords
+from .BoardState import BoardState
 
 from .Player import Player
 from .AvalamGame import AvalamGame

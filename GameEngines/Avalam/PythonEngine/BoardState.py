@@ -11,7 +11,7 @@ class BoardState:
     INIT_INFO = utils.board_setup()
     INIT_MOVES = utils.gen_moves(utils.board_setup()[0])
 
-    def __init__(self, board_info: Tuple[np.ndarray, np.ndarray] = None, moves: Set = None):
+    def __init__(self, board_info: Tuple[np.ndarray, np.ndarray] = None, moves: Set = None, turn=0):
         if board_info is None:
             board_info = self.INIT_INFO
             moves = self.INIT_MOVES
@@ -19,6 +19,7 @@ class BoardState:
         self.board, self.ratios = board_info
         self._moves = moves
         self._on_move_call = None
+        self.turn = turn
 
     def __repr__(self) -> str:
         err = re.sub(r'(\d{2,}|[6-9])', fr'{Fore.LIGHTRED_EX}\1{Fore.RESET}', self.board.__str__())
@@ -27,11 +28,12 @@ class BoardState:
         return pos
 
     def copy(self) -> 'BoardState':
-        return BoardState((self.board.copy(), self.ratios.copy()), self._moves.copy())
+        return BoardState((self.board.copy(), self.ratios.copy()), self._moves.copy(), self.turn)
 
     def play(self, origin: Coords, dest: Coords) -> 'BoardState':
 
         new_board = self.copy()
+        new_board.turn += 1
 
         top = new_board.board[origin]
         new_board.board[origin] = 0
@@ -83,7 +85,6 @@ class BoardState:
             return -1
         # winner
         return int(p1 < p2)
-
 
 
 if __name__ == '__main__':
