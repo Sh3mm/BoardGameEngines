@@ -52,7 +52,7 @@ class BoardState:
         tile = 3 * move[0][0] + move[0][1]
         sub_tile = 3 * move[1][0] + move[1][1]
 
-        new_board.board[tile, sub_tile] = pid + 1
+        new_board.board[tile, sub_tile] = pid
         new_board.active_cell = sub_tile
 
         new_board._win_state[tile] = new_board._get_winner_of(new_board.board[tile])

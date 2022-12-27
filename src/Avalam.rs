@@ -182,7 +182,7 @@ impl RawAvalamState {
         Python::with_gil(|_py|{
             // unfinished
             if self.get_legal_moves().call_method0(_py, "__len__").unwrap().call_method1(_py, "__gt__", (2,)).unwrap().is_true(_py).unwrap() {
-                return -2;
+                return 0;
             }
 
             let (p1, p2) = self.count();
@@ -191,7 +191,7 @@ impl RawAvalamState {
                 return -1
             }
             // winner
-            return isize::from(p1 < p2)
+            return isize::from(p1 < p2) + 1
         })
     }
 

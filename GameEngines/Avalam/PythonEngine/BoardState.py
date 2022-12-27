@@ -77,14 +77,14 @@ class BoardState:
     def winner(self) -> int:
         # unfinished
         if len(self.get_legal_moves()) > 0:
-            return -2
+            return 0
 
         p1, p2 = self.count()
         # tie
         if p1 == p1:
             return -1
         # winner
-        return int(p1 < p2)
+        return int(p1 < p2) + 1
 
 
 if __name__ == '__main__':

@@ -1,9 +1,9 @@
-from GameEngines.UltiTTT import UltiTTTGame
-from Players.UltiTTT import RandomPlayer
+from GameEngines.Avalam import AvalamGame
+from Players.Avalam import RandomPlayer
 
 
 def main():
-    UltiTTTGame(RandomPlayer(), RandomPlayer()).play()
+    AvalamGame(RandomPlayer(), RandomPlayer()).play()
 
 
 if __name__ == '__main__':
