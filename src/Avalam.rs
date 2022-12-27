@@ -18,6 +18,8 @@ pub struct RawAvalamState {
     board: Py<PyArray2<i32>>,
     #[pyo3(get, set)]
     ratios: Py<PyArray3<i32>>,
+    #[pyo3(get, set)]
+    turn: u32,
     moves: Py<PySet>,
     on_move_call: Option<(Coords, Coords)>
 }
@@ -73,7 +75,7 @@ impl RawAvalamState {
             let board = PyArray2::from_owned_array(_py, RawAvalamState::base_array()).to_owned();
             let ratios = PyArray3::from_owned_array(_py, RawAvalamState::base_ratios()).to_owned();
             let moves = gen_moves(board.as_ref(_py)).into();
-            return RawAvalamState {board, ratios, moves, on_move_call: None}
+            return RawAvalamState {board, ratios, turn: 0, moves, on_move_call: None}
         });
     }
 
@@ -92,6 +94,7 @@ impl RawAvalamState {
                 board: board.to_owned(),
                 ratios: ratios.to_owned(),
                 moves,
+                turn: self.turn,
                 on_move_call: None
             }
         })
@@ -100,6 +103,7 @@ impl RawAvalamState {
     fn play(&self, origin: Coords, dest: Coords) -> Self{
         let mut new_board = self.copy();
         new_board.on_move_call = Some((origin, dest));
+        new_board.turn += 1;
 
         Python::with_gil(|_py| {
             // board Update
@@ -164,6 +168,33 @@ impl RawAvalamState {
             }
         }
     }
+
+    fn count(&self) -> (usize, usize){
+        Python::with_gil(|_py| {
+            let array = unsafe { self.board.as_ref(_py).as_array() };
+            array.fold((0, 0), |b, &v| {
+                if v > 0 { (b.0 + 1, b.1) } else { (b.0, b.1 + 1) }
+            })
+        })
+    }
+
+    fn winner(&mut self) -> isize{
+        Python::with_gil(|_py|{
+            // unfinished
+            if self.get_legal_moves().call_method0(_py, "__len__").unwrap().call_method1(_py, "__gt__", (2,)).unwrap().is_true(_py).unwrap() {
+                return 0;
+            }
+
+            let (p1, p2) = self.count();
+            // tie
+            if p1 == p2 {
+                return -1
+            }
+            // winner
+            return isize::from(p1 < p2) + 1
+        })
+    }
+
 }
 
 pub fn gen_moves(board: &PyArray2<i32>) -> Py<PySet>{

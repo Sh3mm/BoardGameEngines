@@ -6,6 +6,7 @@ class RawAvalamState(object):
     board: ndarray
     ratios: ndarray
     moves: Set[Move]
+    turn: int
 
     def __init__(self): ...
 
@@ -18,3 +19,5 @@ class RawAvalamState(object):
     def get_legal_moves(self) -> Set[Move]: ...
 
     def count(self) -> Tuple[int, int]: ...
+
+    def winner(self) -> int: ...
