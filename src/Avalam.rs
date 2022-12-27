@@ -100,7 +100,10 @@ impl RawAvalamState {
         })
     }
 
-    fn play(&self, origin: Coords, dest: Coords) -> Self{
+    fn play(&self, c_move: Move, _pid: usize) -> Self{
+        let origin = c_move.0;
+        let dest = c_move.1;
+
         let mut new_board = self.copy();
         new_board.on_move_call = Some((origin, dest));
         new_board.turn += 1;
@@ -169,11 +172,13 @@ impl RawAvalamState {
         }
     }
 
-    fn count(&self) -> (usize, usize){
+    fn score(&self) -> (usize, usize){
         Python::with_gil(|_py| {
             let array = unsafe { self.board.as_ref(_py).as_array() };
             array.fold((0, 0), |b, &v| {
-                if v > 0 { (b.0 + 1, b.1) } else { (b.0, b.1 + 1) }
+                if v > 0 { return (b.0 + 1, b.1); }
+                if v < 0 { return (b.0, b.1 + 1); }
+                return b;
             })
         })
     }
@@ -185,7 +190,7 @@ impl RawAvalamState {
                 return 0;
             }
 
-            let (p1, p2) = self.count();
+            let (p1, p2) = self.score();
             // tie
             if p1 == p2 {
                 return -1

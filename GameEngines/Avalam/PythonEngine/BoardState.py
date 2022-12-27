@@ -3,11 +3,12 @@ import numpy as np
 from colorama import Fore
 from typing import Set
 from itertools import product
+from GameEngines._generic import AbsBoardState
 import GameEngines.Avalam.PythonEngine.utils as utils
 from GameEngines.Avalam.utilsTypes import *
 
 
-class BoardState:
+class BoardState(AbsBoardState):
     INIT_INFO = utils.board_setup()
     INIT_MOVES = utils.gen_moves(utils.board_setup()[0])
 
@@ -16,29 +17,40 @@ class BoardState:
             board_info = self.INIT_INFO
             moves = self.INIT_MOVES
 
-        self.board, self.ratios = board_info
+        self._board, self.ratios = board_info
         self._moves = moves
         self._on_move_call = None
-        self.turn = turn
+        self._turn = turn
+
+    @property
+    def turn(self):
+        return self._turn
+
+    @property
+    def board(self):
+        return self._board
 
     def __repr__(self) -> str:
-        err = re.sub(r'(\d{2,}|[6-9])', fr'{Fore.LIGHTRED_EX}\1{Fore.RESET}', self.board.__str__())
+        err = re.sub(r'(\d{2,}|[6-9])', fr'{Fore.LIGHTRED_EX}\1{Fore.RESET}', self._board.__str__())
         neg = re.sub(r'(-[1-5])', fr'{Fore.LIGHTBLUE_EX}\1{Fore.RESET}', err)
         pos = re.sub(r'((?: | \[)[1-5])', fr'{Fore.LIGHTYELLOW_EX}\1{Fore.RESET}', neg)
         return pos
 
     def copy(self) -> 'BoardState':
-        return BoardState((self.board.copy(), self.ratios.copy()), self._moves.copy(), self.turn)
+        return BoardState((self._board.copy(), self.ratios.copy()), self._moves.copy(), self._turn)
 
-    def play(self, origin: Coords, dest: Coords) -> 'BoardState':
+    def play(self, move: Move, pid: int = None) -> 'BoardState':
+
+        origin: Coords = move[0]
+        dest: Coords = move[1]
 
         new_board = self.copy()
-        new_board.turn += 1
+        new_board._turn += 1
 
-        top = new_board.board[origin]
-        new_board.board[origin] = 0
-        bottom = new_board.board[dest]
-        new_board.board[dest] = (int(top > 0) * 2 - 1) * abs(bottom) + top
+        top = new_board._board[origin]
+        new_board._board[origin] = 0
+        bottom = new_board._board[dest]
+        new_board._board[dest] = (int(top > 0) * 2 - 1) * abs(bottom) + top
 
         new_board._update_ratios(origin, dest)
 
@@ -54,7 +66,7 @@ class BoardState:
             if not (0 <= dest[0] + i < 9 and
                     0 <= dest[1] + j < 9):
                 continue
-            if abs(self.board[dest]) + abs(self.board[(dest[0] + i, dest[1] + j)]) > 5:
+            if abs(self._board[dest]) + abs(self._board[(dest[0] + i, dest[1] + j)]) > 5:
                 self._moves.discard(((dest[0] + i, dest[1] + j), dest))
                 self._moves.discard((dest, (dest[0] + i, dest[1] + j)))
 
@@ -68,10 +80,10 @@ class BoardState:
             self._on_move_call = None
         return self._moves
 
-    def count(self) -> Tuple[int, int]:
+    def score(self) -> Tuple[int, int]:
         return (
-            (self.board > 0).sum(),
-            (self.board < 0).sum()
+            (self._board > 0).sum(),
+            (self._board < 0).sum()
         )
 
     def winner(self) -> int:
@@ -79,7 +91,7 @@ class BoardState:
         if len(self.get_legal_moves()) > 0:
             return 0
 
-        p1, p2 = self.count()
+        p1, p2 = self.score()
         # tie
         if p1 == p1:
             return -1
@@ -89,5 +101,5 @@ class BoardState:
 
 if __name__ == '__main__':
     b = BoardState()
-    b = b.play((4, 5), (3, 5))
+    b = b.play(((4, 5), (3, 5)))
     print(b)

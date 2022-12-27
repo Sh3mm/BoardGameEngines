@@ -2,12 +2,13 @@ import time
 from math import inf
 from random import random
 from colorama import Fore
-from GameEngines.Avalam import BoardState, Player, Move
+from GameEngines import AbsPlayer
+from GameEngines.Avalam import BoardState, Move
 from typing import Set, List, Tuple, Union
 from Players.Avalam.minimax_utils import Heuristic, DepthCalculator
 
 
-class MiniMaxPlayer(Player):
+class MiniMaxPlayer(AbsPlayer):
     ENDING_SCORE = 1000  # usage : score in a final state
 
     def __init__(self, max_depth: Union[float, DepthCalculator], heuristic: Heuristic, p_name: str = None):
@@ -16,7 +17,7 @@ class MiniMaxPlayer(Player):
         self.heuristic = heuristic
         self.total_time = 0
 
-    def play(self, board: BoardState, moves: Set[Move], pid: int, turn: int) -> Move:
+    def play(self, board: BoardState, moves: Set[Move], pid: int) -> Move:
         start_time = time.time()
         if isinstance(self.max_depth, (float, int)):
             max_depth = self.max_depth
