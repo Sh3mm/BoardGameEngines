@@ -7,7 +7,3 @@ if hasattr(GameEngines.Avalam, "__all__"):
 
 from .utilsTypes import Move, Coords
 from .BoardState import BoardState
-
-from .Player import Player
-from .AvalamGame import AvalamGame
-
