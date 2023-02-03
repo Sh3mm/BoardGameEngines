@@ -44,7 +44,7 @@ class MiniMaxPlayer(AbsPlayer):
             prev_actions = []
 
         # terminal state
-        if not is_final and len(state.get_legal_moves()) == 0:
+        if not is_final and len(state.get_legal_moves(0)) == 0:
             return self.get_terminal_score(pid, prev_actions, state)
 
         # Max depth reached
@@ -55,7 +55,7 @@ class MiniMaxPlayer(AbsPlayer):
         value = -inf if is_max else inf
         best_actions = None
 
-        actions = state.get_legal_moves()
+        actions = state.get_legal_moves(0)
         for a in actions:
             next_steps = [*prev_actions, a]
             #print(next_steps)

@@ -11,20 +11,20 @@ class Game:
         history = []
         time_data = []
         if results:
-            print(self.players[0].get_name(), 'vs', self.players[1].get_name())
+            print(self.players[0].name, 'vs', self.players[1].name)
 
         while self.boardState.winner() == 0:
             turn = self.boardState.turn
             p_nb = turn % 2 + 1
             player = self.players[p_nb - 1]
-            moves = self.boardState.get_legal_moves()
+            moves = self.boardState.get_legal_moves(p_nb)
 
             beg = time.time()
             res = player.play(self.boardState, moves, p_nb)
             time_data.append(time.time() - beg)
 
             history.append(res)
-            self.boardState = self.boardState.play(res, p_nb,,
+            self.boardState = self.boardState.play(res, p_nb)
 
         points = self.boardState.score()
         winner = self.boardState.winner()

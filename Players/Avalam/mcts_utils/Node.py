@@ -36,7 +36,7 @@ class Node:
         if self.end_state:
             return
 
-        self.children = [Node(move, self) for move in self.state.get_legal_moves()]
+        self.children = [Node(move, self) for move in self.state.get_legal_moves(0)]
 
     def back_prop(self, result: float):
         self.tot_value += result
@@ -49,7 +49,7 @@ class Node:
     @property
     def end_state(self):
         if self._end_state is None:
-            self._end_state = len(self.state.get_legal_moves()) == 0
+            self._end_state = len(self.state.get_legal_moves(0)) == 0
         return self._end_state
 
     @property

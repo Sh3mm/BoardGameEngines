@@ -20,11 +20,11 @@ class BoardState(AbsBoardState):
         self._active_cell = active_cell
 
     @property
-    def turn(self):
+    def turn(self) -> int:
         return self._turn
 
     @property
-    def board(self):
+    def board(self) -> np.ndarray:
         return self._board
 
     def __repr__(self):
@@ -68,7 +68,7 @@ class BoardState(AbsBoardState):
 
         return new_board
 
-    def get_legal_moves(self):
+    def get_legal_moves(self, pid):
         # if fist move or the active cell is full and any move can be taken
         if self._active_cell == -1 or self._win_state[self._active_cell] != 0:
             return [

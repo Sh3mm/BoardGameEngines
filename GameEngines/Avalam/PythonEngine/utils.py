@@ -9,6 +9,11 @@ VOIDS = [(0, 4), (6, 10), (15, 18), (25, 27), (34, 37), (40, 41), (44, 47), (54,
 
 
 def board_setup() -> Tuple[np.ndarray, np.ndarray]:
+    """
+    method used to create a new raw (ndarray) board for the Avalam game
+
+    :return: a ndarray of the initial board
+    """
     board = np.ones(81, int)
     board[1::2] = -1
     board[0:4] = 0
@@ -25,6 +30,12 @@ def board_setup() -> Tuple[np.ndarray, np.ndarray]:
 
 
 def gen_moves(board: np.ndarray):
+    """
+    method used to generate the current possible moves of a raw (ndarray) board of the Avalam game
+
+    :param board: the raw board of an Avalam game
+    :return: a set of legal moves for the given board
+    """
     moves = set()
     lines, rows = board.shape
     for i, j in product(range(lines), range(rows)):

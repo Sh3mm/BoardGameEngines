@@ -9,6 +9,10 @@ from GameEngines.Avalam.utilsTypes import *
 
 
 class BoardState(AbsBoardState):
+    """
+    This class is the Python implementation of BoardState for the `Avalam` game.
+    Rules for the game can be found online
+    """
     INIT_INFO = utils.board_setup()
     INIT_MOVES = utils.gen_moves(utils.board_setup()[0])
 
@@ -23,11 +27,11 @@ class BoardState(AbsBoardState):
         self._turn = turn
 
     @property
-    def turn(self):
+    def turn(self) -> int:
         return self._turn
 
     @property
-    def board(self):
+    def board(self) -> np.ndarray:
         return self._board
 
     def __repr__(self) -> str:
@@ -58,6 +62,7 @@ class BoardState(AbsBoardState):
         return new_board
 
     def _update_moves(self, origin: Coords, dest: Coords):
+        """method used to update the cached moves for the state upon creation"""
         for i, j in product(range(-1, 2), range(-1, 2)):
             self._moves.discard((origin, (origin[0] + i, origin[1] + j)))
             self._moves.discard(((origin[0] + i, origin[1] + j), origin))
@@ -71,10 +76,11 @@ class BoardState(AbsBoardState):
                 self._moves.discard((dest, (dest[0] + i, dest[1] + j)))
 
     def _update_ratios(self, origin: Coords, dest: Coords):
+        """method used to update the ratios for the state upon creation"""
         self.ratios[:, dest[0], dest[1]] += self.ratios[:, origin[0], origin[1]]
         self.ratios[:, origin[0], origin[1]] = 0
 
-    def get_legal_moves(self) -> Set[Move]:
+    def get_legal_moves(self, pid) -> Set[Move]:
         if self._on_move_call is not None:
             self._update_moves(*self._on_move_call)
             self._on_move_call = None
@@ -88,7 +94,7 @@ class BoardState(AbsBoardState):
 
     def winner(self) -> int:
         # unfinished
-        if len(self.get_legal_moves()) > 0:
+        if len(self.get_legal_moves(0)) > 0:
             return 0
 
         p1, p2 = self.score()
@@ -97,9 +103,3 @@ class BoardState(AbsBoardState):
             return -1
         # winner
         return int(p1 < p2) + 1
-
-
-if __name__ == '__main__':
-    b = BoardState()
-    b = b.play(((4, 5), (3, 5)))
-    print(b)
