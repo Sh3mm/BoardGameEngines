@@ -27,6 +27,7 @@ pub struct RawAvalamState {
 unsafe impl Send for RawAvalamState {}
 
 impl RawAvalamState {
+    /// returns a raw avalam board in the initial state
     fn base_array() -> Array2<i32>{
         return array![
             [ 0,  0,  1, -1,  0,  0,  0,  0,  0],
@@ -41,6 +42,7 @@ impl RawAvalamState {
         ]
     }
 
+    /// returns the ration table of an avalam board in the initial state
     fn base_ratios() -> Array3<i32>{
         return array![[
             [0, 0, 1, 0, 0, 0, 0, 0, 0],
@@ -65,20 +67,32 @@ impl RawAvalamState {
         ],
         ]
     }
+
+    /// returns a set of all legal actions that can be used in a specific state
+    fn _get_legal_moves(&mut self) -> Py<PySet> {
+        Python::with_gil(|_py| {
+            if let Some((origin, dest)) = self.on_move_call {
+                self.on_move_call = None;
+                self._update_move(_py, origin, dest);
+            }
+            self.moves.as_ref(_py).into()
+        })
+    }
 }
 
 #[pymethods]
 impl RawAvalamState {
     #[new]
+    /// Creates the initial Avalam State python object
     fn new() -> Self{
         return Python::with_gil(|_py|{
             let board = PyArray2::from_owned_array(_py, RawAvalamState::base_array()).to_owned();
             let ratios = PyArray3::from_owned_array(_py, RawAvalamState::base_ratios()).to_owned();
-            let moves = gen_moves(board.as_ref(_py)).into();
+            let moves = gen_moves(board.as_ref(_py));
             return RawAvalamState {board, ratios, turn: 0, moves, on_move_call: None}
         });
     }
-
+    /// copies and returns a python avalam State object
     fn copy(&self) -> Self{
         Python::with_gil(|_py| {
             let copy_module = PyModule::import(_py, "copy").unwrap();
@@ -100,6 +114,7 @@ impl RawAvalamState {
         })
     }
 
+    /// play an action on the Avalam State and returns the following State object
     fn play(&self, c_move: Move, _pid: usize) -> Self{
         let origin = c_move.0;
         let dest = c_move.1;
@@ -135,33 +150,28 @@ impl RawAvalamState {
         return new_board;
     }
 
-    fn get_legal_moves(&mut self) -> Py<PySet> {
-        Python::with_gil(|_py| {
-            match self.on_move_call {
-                Some((origin, dest)) => {
-                    self.on_move_call = None;
-                    self._update_move(_py, origin, dest);
-                }
-                None => {}
-            }
-            self.moves.as_ref(_py).into()
-        })
+    /// standard implementation of the `get_legal_moves` python method. it returns the legal
+    /// actions the specified player can take. In the case of the Avalam game, both players can
+    /// play the same set of moves
+    fn get_legal_moves(&mut self, _pid: usize) -> Py<PySet> {
+        return self._get_legal_moves()
     }
 
+    /// updates the current State move cache upon it's creation. Usually by copy.
     fn _update_move(&self, _py: Python, origin: Coords, dest: Coords) {
         // Moves Update
         let move_set = self.moves.as_ref(_py).cast_as::<PySet>().unwrap();
         let b_ref = self.board.as_ref(_py);
         // Impossible origin
-        let i_range = origin.0.checked_sub(1).unwrap_or(0)..min(origin.0 + 2, 9);
-        let j_range = origin.1.checked_sub(1).unwrap_or(0)..min(origin.1 + 2, 9);
+        let i_range = origin.0.saturating_sub(1)..min(origin.0 + 2, 9);
+        let j_range = origin.1.saturating_sub(1)..min(origin.1 + 2, 9);
         for (i, j) in iproduct!(i_range, j_range) {
             move_set.discard((origin, (i, j)));
             move_set.discard(((i, j), origin));
         }
         // Impossible dest
-        let i_range = dest.0.checked_sub(1).unwrap_or(0)..min(dest.0 + 2, 9);
-        let j_range = dest.1.checked_sub(1).unwrap_or(0)..min(dest.1 + 2, 9);
+        let i_range = dest.0.saturating_sub(1)..min(dest.0 + 2, 9);
+        let j_range = dest.1.saturating_sub(1)..min(dest.1 + 2, 9);
         for (i, j) in iproduct!(i_range, j_range) {
             move_set.discard((origin, (i, j)));
             move_set.discard(((i, j), origin));
@@ -172,6 +182,8 @@ impl RawAvalamState {
         }
     }
 
+    /// returns the current score of the State in the case of Avalam, this means the number of
+    /// towers controlled by each player
     fn score(&self) -> (usize, usize){
         Python::with_gil(|_py| {
             let array = unsafe { self.board.as_ref(_py).as_array() };
@@ -183,10 +195,20 @@ impl RawAvalamState {
         })
     }
 
+    /// return the current winner of the game.
+    ///
+    /// If the game is unfinished, it return 0
+    ///
+    /// If the game is a tie it returns -1
+    ///
+    /// Otherwise, it returns the player id of the winner
     fn winner(&mut self) -> isize{
         Python::with_gil(|_py|{
             // unfinished
-            if self.get_legal_moves().call_method0(_py, "__len__").unwrap().call_method1(_py, "__gt__", (2,)).unwrap().is_true(_py).unwrap() {
+            if self._get_legal_moves()
+                .call_method0(_py, "__len__").unwrap()
+                .call_method1(_py, "__gt__", (2,)).unwrap()
+                .is_true(_py).unwrap() {
                 return 0;
             }
 
@@ -202,6 +224,7 @@ impl RawAvalamState {
 
 }
 
+/// generates all possible action given a specific raw Avalam board configuration
 pub fn gen_moves(board: &PyArray2<i32>) -> Py<PySet>{
     Python::with_gil(|_py|{
         let board = unsafe { board.as_array() }.mapv(|v| { v.abs() });
@@ -210,8 +233,8 @@ pub fn gen_moves(board: &PyArray2<i32>) -> Py<PySet>{
         for (i, j) in iproduct!(0..9, 0..9) {
             if *board.get([i, j]).unwrap() == 0 { continue; }
             let sub = board.slice(s![
-                    i.checked_sub(1).unwrap_or(0)..min(i + 2, 9),
-                    j.checked_sub(1).unwrap_or(0)..min(j + 2, 9)
+                    i.saturating_sub(1)..min(i + 2, 9),
+                    j.saturating_sub(1)..min(j + 2, 9)
                 ]);
 
             let legit = sub.indexed_iter()

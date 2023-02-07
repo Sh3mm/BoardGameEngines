@@ -80,7 +80,7 @@ class BoardState(AbsBoardState):
         self.ratios[:, dest[0], dest[1]] += self.ratios[:, origin[0], origin[1]]
         self.ratios[:, origin[0], origin[1]] = 0
 
-    def get_legal_moves(self, pid) -> Set[Move]:
+    def get_legal_moves(self, pid=0) -> Set[Move]:
         if self._on_move_call is not None:
             self._update_moves(*self._on_move_call)
             self._on_move_call = None
@@ -94,7 +94,7 @@ class BoardState(AbsBoardState):
 
     def winner(self) -> int:
         # unfinished
-        if len(self.get_legal_moves(0)) > 0:
+        if len(self.get_legal_moves()) > 0:
             return 0
 
         p1, p2 = self.score()

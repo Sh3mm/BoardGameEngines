@@ -97,6 +97,7 @@ class BoardState(AbsBoardState):
 
     @staticmethod
     def _get_winner_of(section: List[int]) -> int:
+        """function that take in a TTT board and return's the winner"""
         diags = [section[0::4], section[2:8:2]]
         rows = [section[0 + (3 * i): 3 + (3 * i)] for i in range(3)]
         cols = [section[i::3] for i in range(3)]

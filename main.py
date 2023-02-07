@@ -1,9 +1,9 @@
 from GameEngines import Game, RandomPlayer
-from GameEngines.UltiTTT import BoardState
+from GameEngines.Avalam import BoardState
 
 
 def main():
-    Game(BoardState, RandomPlayer(), RandomPlayer()).play()
+    Game(BoardState, RandomPlayer(), RandomPlayer()).play_full()
 
 
 if __name__ == '__main__':

@@ -1,13 +1,24 @@
-from GameEngines._generic import AbsBoardState, AbsPlayer
+from typing import Type
 import time
+from GameEngines._generic import AbsBoardState, AbsPlayer
 
 
 class Game:
-    def __init__(self, board_class, p0: AbsPlayer, p1: AbsPlayer):
+    """
+    This Class represents a game between two AbsPlayer agent.
+    It can play any game implementing AbsBoardState
+    """
+    def __init__(self, board_class: Type[AbsBoardState], p0: AbsPlayer, p1: AbsPlayer):
         self.players = [p0, p1]
         self.boardState: AbsBoardState = board_class()
 
-    def play(self, results=True):
+    def play_full(self, results=True):
+        """
+        the play_full method plays a full game and returns the results
+
+        :param results: Should the final board be shown in terminal
+        :return: the winner, the final score and move data
+        """
         history = []
         time_data = []
         if results:

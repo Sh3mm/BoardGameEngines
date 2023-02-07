@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from GameEngines._generic import AbsBoardState
 from typing import TypeVar, Set
 
-T = TypeVar['T']
+T = TypeVar('T')
 
 
 class AbsPlayer(ABC):
