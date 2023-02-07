@@ -1,9 +1,13 @@
 import GameEngines
 from GameEngines.Avalam import *
-
-__doc__ = GameEngines.Avalam.__doc__
-if hasattr(GameEngines.Avalam, "__all__"):
-    __all__ = GameEngines.Avalam.__all__
-
 from .utilsTypes import Move, Coords
-from .BoardState import BoardState
+
+try:
+    __doc__ = GameEngines.Avalam.__doc__
+    if hasattr(GameEngines.Avalam, "__all__"):
+        __all__ = GameEngines.Avalam.__all__
+
+    from .BoardState import BoardState
+
+except AttributeError:
+    from .PythonEngine.BoardState import BoardState
