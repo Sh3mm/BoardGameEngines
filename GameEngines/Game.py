@@ -18,16 +18,20 @@ class Game:
 
         self.winner = 0
 
-    def play_full(self, results=True):
+    def play_full(self):
         """
         the play_full method plays a full game and returns the results
 
-        :param results: Should the final board be shown in terminal
         :return: the winner, the final score and move data
         """
         self.play(math.inf)
 
     def play(self, n=1):
+        """
+        the play method will play the next n turns of the game
+
+        :param n: the number of turns to be played
+        """
         played = 0
         while self.winner == 0 and played < n:
             turn = self.history[-1].turn
@@ -44,6 +48,12 @@ class Game:
             played += 1
 
     def branch(self, i: int) -> 'Game':
+        """
+        This method creates a new game branching from a point in the game
+
+        :param i: the turn after which the game will be forked
+        :return: the forked game
+        """
         i += 1
         new_game = Game(self.board_class, *self.players)
         new_game.history = self.history[:i]
@@ -53,6 +63,9 @@ class Game:
         return new_game
 
     def show_state(self):
+        """
+        This method prints the current state of the game
+        """
         points = self.history[-1].score()
         if self.winner == -1:
             print(f'Tied: {points}')
