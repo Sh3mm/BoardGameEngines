@@ -10,7 +10,6 @@ class BoardState(AbsBoardState):
     """
     board: ndarray
     ratios: ndarray
-    moves: Set[Move]
 
     def __init__(self): ...
 
@@ -26,7 +25,7 @@ class BoardState(AbsBoardState):
 
     def play(self, move: Move, pid: int) -> 'BoardState': ...
 
-    def get_legal_moves(self, pid) -> Set[Move]: ...
+    def get_legal_moves(self, pid=0) -> Set[Move]: ...
 
     def score(self) -> Tuple[int, int]: ...
 
