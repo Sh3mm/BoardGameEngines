@@ -68,20 +68,20 @@ class BoardState(AbsBoardState):
 
         return new_board
 
-    def get_legal_moves(self, pid):
+    def get_legal_moves(self, _pid=0):
         # if fist move or the active cell is full and any move can be taken
         if self._active_cell == -1 or self._win_state[self._active_cell] != 0:
-            return [
+            return {
                 ((i // 3, i % 3), (j // 3, j % 3))
                 for i, j in zip(*np.where(self._board == 0))
                 if self._win_state[i] == 0
-            ]
+            }
 
         # if space left in the active cell
-        return [
+        return {
             ((self._active_cell // 3, self._active_cell % 3), (j // 3, j % 3))
             for j in np.where(self._board[self._active_cell] == 0)[0]
-        ]
+        }
 
     def winner(self) -> int:
         return self._get_winner_of(self._win_state)
