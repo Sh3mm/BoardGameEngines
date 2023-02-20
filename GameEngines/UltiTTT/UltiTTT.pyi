@@ -8,8 +8,6 @@ class BoardState(AbsBoardState):
     This class is the implementation of BoardState for the `Avalam` game.
     Rules for the game can be found online
     """
-    ratios: ndarray
-
     def __init__(self): ...
 
     @property
