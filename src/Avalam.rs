@@ -115,6 +115,7 @@ impl RawAvalamState {
     }
 
     /// play an action on the Avalam State and returns the following State object
+    #[args(_pid=0)]
     fn play(&self, c_move: Move, _pid: usize) -> Self{
         let origin = c_move.0;
         let dest = c_move.1;
@@ -153,6 +154,7 @@ impl RawAvalamState {
     /// standard implementation of the `get_legal_moves` python method. it returns the legal
     /// actions the specified player can take. In the case of the Avalam game, both players can
     /// play the same set of moves
+    #[args(_pid=0)]
     fn get_legal_moves(&mut self, _pid: usize) -> Py<PySet> {
         return self._get_legal_moves()
     }

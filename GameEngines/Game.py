@@ -57,7 +57,7 @@ class Game:
         i += 1
         new_game = Game(self.board_class, *self.players)
         new_game.history = self.history[:i]
-        new_game.time_data = self.time_data[:i]
+        new_game.time_data = self.time_data[:i-1]
         new_game.winner = self.winner
 
         return new_game
