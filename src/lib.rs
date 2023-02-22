@@ -14,6 +14,7 @@ use crate::UltiTTT::{RawUltiTTTState};
 #[pyo3(name="GameEngines")]
 fn RustEngine(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_submodule(Avalam(_py)?)?;
+    m.add_submodule(UltiTTT(_py)?)?;
     Ok(())
 }
 
