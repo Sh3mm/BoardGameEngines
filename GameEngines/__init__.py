@@ -11,3 +11,6 @@ except ModuleNotFoundError:
 from ._generic import AbsPlayer, AbsBoardState
 from .Game import Game
 from .RandomPlayer import RandomPlayer
+
+import GameEngines.UltiTTT
+import GameEngines.Avalam

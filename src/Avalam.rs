@@ -14,11 +14,11 @@ type Move = (Coords, Coords);
 
 #[pyclass(subclass)]
 pub struct RawAvalamState {
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     board: Py<PyArray2<i32>>,
     #[pyo3(get, set)]
     ratios: Py<PyArray3<i32>>,
-    #[pyo3(get, set)]
+    #[pyo3(get)]
     turn: u32,
     moves: Py<PySet>,
     on_move_call: Option<(Coords, Coords)>
