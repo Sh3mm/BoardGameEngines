@@ -14,3 +14,4 @@ from .RandomPlayer import RandomPlayer
 
 import GameEngines.UltiTTT
 import GameEngines.Avalam
+import GameEngines.Checkers
