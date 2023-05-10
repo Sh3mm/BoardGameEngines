@@ -27,7 +27,7 @@ fn Avalam(_py: Python<'_>) -> PyResult<&PyModule> {
 
 /// The rust implementation of an Ultimate Tic-tac-toe engine
 fn UltiTTT(_py: Python<'_>) -> PyResult<&PyModule> {
-    let ultiTTT_module = PyModule::new(_py, "Avalam")?;
+    let ultiTTT_module = PyModule::new(_py, "UltiTTT")?;
     ultiTTT_module.add_class::<RawUltiTTTState>()?;
     return Ok(ultiTTT_module)
 }

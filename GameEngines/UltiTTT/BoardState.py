@@ -23,7 +23,7 @@ def _repr(self):
     for i, j in product(range(3), range(3)):
         line = []
         for k in range(3):
-            line.append(' '.join(map(color, self._board[3*i + k, 3*j:3*j+3])))
+            line.append(' '.join(map(color, self.board[3*i + k, 3*j:3*j+3])))
         lines.append(' \u2502 '.join(line))
 
     output = []

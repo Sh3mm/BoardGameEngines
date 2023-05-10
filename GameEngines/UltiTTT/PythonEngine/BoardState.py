@@ -68,20 +68,20 @@ class BoardState(AbsBoardState):
 
         return new_board
 
-    def get_legal_moves(self, pid):
+    def get_legal_moves(self, pid=0):
         # if fist move or the active cell is full and any move can be taken
         if self._active_cell == -1 or self._win_state[self._active_cell] != 0:
-            return [
+            return {
                 ((i // 3, i % 3), (j // 3, j % 3))
                 for i, j in zip(*np.where(self._board == 0))
                 if self._win_state[i] == 0
-            ]
+            }
 
         # if space left in the active cell
-        return [
+        return {
             ((self._active_cell // 3, self._active_cell % 3), (j // 3, j % 3))
             for j in np.where(self._board[self._active_cell] == 0)[0]
-        ]
+        }
 
     def winner(self) -> int:
         return self._get_winner_of(self._win_state)
@@ -98,18 +98,19 @@ class BoardState(AbsBoardState):
     @staticmethod
     def _get_winner_of(section: List[int]) -> int:
         """function that take in a TTT board and return's the winner"""
+        # tie
+        if 0 not in section:
+            return -1
+
+        # winner
         diags = [section[0::4], section[2:8:2]]
         rows = [section[0 + (3 * i): 3 + (3 * i)] for i in range(3)]
         cols = [section[i::3] for i in range(3)]
 
-        # winner
+        # todo: fix the -1 line -> -1 winner
         for line in diags + rows + cols:
             if (0 not in line) and len(set(line)) == 1:
                 return line[0]
-
-        # tie
-        if 0 not in section:
-            return -1
 
         # not over
         return 0
