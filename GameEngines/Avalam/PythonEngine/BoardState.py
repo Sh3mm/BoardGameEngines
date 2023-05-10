@@ -4,6 +4,7 @@ from colorama import Fore
 from typing import Set
 from itertools import product
 from GameEngines._generic import AbsBoardState
+from GameEngines.Avalam.repr import _repr
 import GameEngines.Avalam.PythonEngine.utils as utils
 from GameEngines.Avalam.utilsTypes import *
 
@@ -35,6 +36,9 @@ class BoardState(AbsBoardState):
         return self._board
 
     def __repr__(self) -> str:
+        return _repr(self)
+
+    def __m(self):
         err = re.sub(r'(\d{2,}|[6-9])', fr'{Fore.LIGHTRED_EX}\1{Fore.RESET}', self._board.__str__())
         neg = re.sub(r'(-[1-5])', fr'{Fore.LIGHTBLUE_EX}\1{Fore.RESET}', err)
         pos = re.sub(r'((?: | \[)[1-5])', fr'{Fore.LIGHTYELLOW_EX}\1{Fore.RESET}', neg)
