@@ -56,7 +56,7 @@ impl RawUltiTTTState {
     }
 
     /// play an action on the UltiTTT State and returns the following State object
-    fn play(&self, c_move: Move, pid: usize) -> Self{
+    fn play(&self, c_move: Move, pid: isize) -> (Self, isize){
         let sup_cell = c_move.0;
         let sub_cell = c_move.1;
 
@@ -79,7 +79,7 @@ impl RawUltiTTTState {
             if new_board.win_state[sub_i] != 0 { -1 }
             else { i8::try_from(sub_i).expect("Cell outside expected range") };
 
-        return new_board;
+        return (new_board, ((pid + 1) % 2) + 1);
     }
 
     /// standard implementation of the `get_legal_moves` python method. it returns the legal
@@ -145,7 +145,7 @@ fn get_winner_of<'z, T: Iterator<Item = &'z i8> + Clone>(section: T) -> i8{
 
     let result = win_con.iter().find(|v| {
         let val = v.iter().fold(-1, |a: i8, &&v| {
-            return  if a == -1 { v } else if a == v { a } else { 0 }
+            return if a == -1 { v } else if a == v { a } else { 0 }
         });
         return ![0, -1].contains(&val)
     });

@@ -27,14 +27,14 @@ def test_init(board_state):
 @rust_python
 def test_play_from_init(board_state):
     b = board_state()
-    b = b.play(((3, 8), (3, 7)))
-    b = b.play(((3, 7), (3, 6)))
-    b = b.play(((3, 6), (3, 5)))
-    b = b.play(((3, 5), (3, 4)))
-    b = b.play(((3, 3), (3, 2)))
-    b = b.play(((3, 2), (3, 1)))
-    b = b.play(((3, 1), (2, 1)))
-    b = b.play(((2, 1), (1, 1)))
+    b, _ = b.play(((3, 8), (3, 7)), 1)
+    b, _ = b.play(((3, 7), (3, 6)), 1)
+    b, _ = b.play(((3, 6), (3, 5)), 1)
+    b, _ = b.play(((3, 5), (3, 4)), 1)
+    b, _ = b.play(((3, 3), (3, 2)), 1)
+    b, _ = b.play(((3, 2), (3, 1)), 1)
+    b, _ = b.play(((3, 1), (2, 1)), 1)
+    b, _ = b.play(((2, 1), (1, 1)), 1)
 
     assert b.board[1, 1] == 5
     assert b.board[3, 4] == -5
@@ -48,8 +48,8 @@ def test_score(board_state):
     b = board_state()
     assert b.score() == (24, 24)
 
-    b = b.play(((3, 8), (3, 7)))
+    b, _ = b.play(((3, 8), (3, 7)), 1)
     assert b.score() == (23, 24)
 
-    b = b.play(((3, 7), (3, 6)))
+    b, _ = b.play(((3, 7), (3, 6)), 1)
     assert b.score() == (23, 23)

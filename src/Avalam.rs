@@ -115,8 +115,7 @@ impl RawAvalamState {
     }
 
     /// play an action on the Avalam State and returns the following State object
-    #[args(_pid=0)]
-    fn play(&self, c_move: Move, _pid: usize) -> Self{
+    fn play(&self, c_move: Move, pid: isize) -> (Self, isize){
         let origin = c_move.0;
         let dest = c_move.1;
 
@@ -148,7 +147,7 @@ impl RawAvalamState {
             r_ref.set_item((0, dest.0, dest.1), top_0 + bottom_0).expect("Destination outside expected range");
             r_ref.set_item((1, dest.0, dest.1), top_1 + bottom_1).expect("Destination outside expected range");
         });
-        return new_board;
+        return (new_board, ((pid + 1) % 2) + 1);;
     }
 
     /// standard implementation of the `get_legal_moves` python method. it returns the legal

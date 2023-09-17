@@ -41,7 +41,7 @@ class BoardState(AbsBoardState):
     def copy(self) -> 'BoardState':
         return BoardState((self._board.copy(), self.ratios.copy()), self._moves.copy(), self._turn)
 
-    def play(self, move: Move, pid: int = None) -> 'BoardState':
+    def play(self, move: Move, pid) -> Tuple['AbsBoardState', int]:
 
         origin: Coords = move[0]
         dest: Coords = move[1]
@@ -57,7 +57,7 @@ class BoardState(AbsBoardState):
         new_board._update_ratios(origin, dest)
 
         new_board._on_move_call = (origin, dest)
-        return new_board
+        return new_board, ((pid + 1) % 2) + 1
 
     def _update_moves(self, origin: Coords, dest: Coords):
         """method used to update the cached moves for the state upon creation"""

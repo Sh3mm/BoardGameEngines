@@ -1,3 +1,4 @@
+from typing import Tuple
 from abc import ABC, abstractmethod
 import numpy as np
 
@@ -28,7 +29,7 @@ class AbsBoardState(ABC):
         ...
 
     @abstractmethod
-    def play(self, move, pid: int) -> 'AbsBoardState':
+    def play(self, move, pid: int) -> Tuple['AbsBoardState', int]:
         """
         method used to create the next state of the game if a move is played. The method does NOT verify that the move
         is legal and will play it regardless

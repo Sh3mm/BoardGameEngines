@@ -32,7 +32,7 @@ class BoardState(AbsBoardState):
     def copy(self) -> 'BoardState':
         return BoardState(self._board.copy(), self._win_state.copy(), self._active_cell, self.turn)
 
-    def play(self, move: Move, pid: int) -> 'BoardState':
+    def play(self, move: Move, pid: int) -> Tuple['AbsBoardState', int]:
         new_board = self.copy()
         new_board._turn += 1
 
@@ -44,7 +44,7 @@ class BoardState(AbsBoardState):
 
         new_board._win_state[tile] = new_board._get_winner_of(new_board._board[tile])
 
-        return new_board
+        return new_board, ((pid + 1) % 2) + 1
 
     def get_legal_moves(self, pid=0):
         # if fist move or the active cell is full and any move can be taken
@@ -85,9 +85,8 @@ class BoardState(AbsBoardState):
         rows = [section[0 + (3 * i): 3 + (3 * i)] for i in range(3)]
         cols = [section[i::3] for i in range(3)]
 
-        # todo: fix the -1 line -> -1 winner
         for line in diags + rows + cols:
-            if (0 not in line) and len(set(line)) == 1:
+            if (0 not in line) and (-1 not in line) and len(set(line)) == 1:
                 return line[0]
 
         # not over
