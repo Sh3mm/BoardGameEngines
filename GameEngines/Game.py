@@ -33,7 +33,7 @@ class Game:
         :param n: the number of turns to be played
         """
         played = 0
-        p_nb = 1
+        p_nb = ((len(self.history) + 1) % 2) + 1
         while self.winner == 0 and played < n:
             player = self.players[p_nb - 1]
             moves = self.history[-1].get_legal_moves(p_nb)
