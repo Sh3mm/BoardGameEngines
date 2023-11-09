@@ -96,7 +96,7 @@ impl RawAvalamState {
     fn copy(&self) -> Self{
         Python::with_gil(|_py| {
             let copy_module = PyModule::import(_py, "copy").unwrap();
-            let moves = copy_module.call_method1("copy", (self.moves.as_ref(_py),)).unwrap().cast_as::<PySet>().unwrap().into();
+            let moves = copy_module.call_method1("copy", (self.moves.as_ref(_py),)).unwrap().downcast::<PySet>().unwrap().into();
 
             let board = unsafe { PyArray2::new(_py, self.board.as_ref(_py).dims(), false) };
             let ratios = unsafe { PyArray3::new(_py, self.ratios.as_ref(_py).dims(), false) };
@@ -147,13 +147,14 @@ impl RawAvalamState {
             r_ref.set_item((0, dest.0, dest.1), top_0 + bottom_0).expect("Destination outside expected range");
             r_ref.set_item((1, dest.0, dest.1), top_1 + bottom_1).expect("Destination outside expected range");
         });
-        return (new_board, ((pid + 1) % 2) + 1);;
+        return (new_board, ((pid + 1) % 2) + 1);
     }
 
     /// standard implementation of the `get_legal_moves` python method. it returns the legal
     /// actions the specified player can take. In the case of the Avalam game, both players can
     /// play the same set of moves
-    #[args(_pid=0)]
+    // #[args(_pid=0)]
+    #[pyo3(signature = (_pid=0))]
     fn get_legal_moves(&mut self, _pid: usize) -> Py<PySet> {
         return self._get_legal_moves()
     }
@@ -161,7 +162,7 @@ impl RawAvalamState {
     /// updates the current State move cache upon it's creation. Usually by copy.
     fn _update_move(&self, _py: Python, origin: Coords, dest: Coords) {
         // Moves Update
-        let move_set = self.moves.as_ref(_py).cast_as::<PySet>().unwrap();
+        let move_set = self.moves.as_ref(_py).downcast::<PySet>().unwrap();
         let b_ref = self.board.as_ref(_py);
         // Impossible origin
         let i_range = origin.0.saturating_sub(1)..min(origin.0 + 2, 9);
@@ -250,6 +251,6 @@ pub fn gen_moves(board: &PyArray2<i32>) -> Py<PySet>{
                 });
             moves.extend(legit);
         }
-        return moves.into_py(_py).cast_as::<PySet>(_py).unwrap().into();
+        return moves.into_py(_py).downcast::<PySet>(_py).unwrap().into();
     })
 }

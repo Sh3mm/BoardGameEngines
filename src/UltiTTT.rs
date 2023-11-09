@@ -85,7 +85,7 @@ impl RawUltiTTTState {
     /// standard implementation of the `get_legal_moves` python method. it returns the legal
     /// actions the specified player can take. In the case of the UltiTTT game, both players can
     /// play the same set of moves
-    #[args(_pid=0)]
+    #[pyo3(signature = (_pid=0))]
     fn get_legal_moves(&self, _pid: usize) -> PyObject {
         Python::with_gil(|_py| {
             let board = unsafe { self.board.as_ref(_py).as_array() };
