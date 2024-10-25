@@ -1,8 +1,8 @@
-from typing import Set, List, Iterator
+from typing import Set, Iterator
 from enum import Enum
 import numpy as np
 
-from GameEngines._generic import AbsBoardState
+from GameEngines import AbsBoardState
 from GameEngines.Checkers.repr import _repr
 from GameEngines.Checkers.utilsTypes import *
 import GameEngines.Checkers.PythonEngine.utils as utils

@@ -1,7 +1,7 @@
 from typing import List, Tuple
 from GameEngines.UltiTTT import Move
 from GameEngines.UltiTTT.repr import _repr
-from GameEngines._generic import AbsBoardState
+from GameEngines import AbsBoardState
 import numpy as np
 
 

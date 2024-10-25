@@ -1,9 +1,7 @@
-import re
 import numpy as np
-from colorama import Fore
 from typing import Set
 from itertools import product
-from GameEngines._generic import AbsBoardState
+from GameEngines import AbsBoardState
 from GameEngines.Avalam.repr import _repr
 import GameEngines.Avalam.PythonEngine.utils as utils
 from GameEngines.Avalam.utilsTypes import *
