@@ -33,3 +33,36 @@ def test_play_from_init(board_state):
     b.play(((1, 1), (1, 1)), 2)
 
     assert b.get_legal_moves() == test_play_from_init_moves_ultittt
+
+
+@rust_python
+def test_winner(board_state):
+    b: PyBoardState = board_state()
+
+    assert b.winner() == 0
+
+    set_win_cell = lambda x, y: (
+            b.play((x, (0, 0)), y) and
+            b.play((x, (0, 1)), y) and
+            b.play((x, (0, 2)), y)
+    )
+
+    #  1, -1, 1,
+    #  0, -1, 0,
+    #  0, -1, 0
+
+    set_win_cell((0, 0), 1)
+    set_win_cell((0, 1), -1)
+    set_win_cell((0, 2), 1)
+    set_win_cell((2, 1), -1)
+    set_win_cell((1, 1), -1)
+
+    assert b.winner() == 0
+
+    b: PyBoardState = board_state()
+
+    set_win_cell((0, 0), 1)
+    set_win_cell((0, 1), 1)
+    set_win_cell((0, 2), 1)
+
+    assert b.winner() == 0

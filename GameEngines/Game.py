@@ -14,6 +14,7 @@ class Game:
 
         self.board_class = board_class
         self.history: List[AbsBoardState] = [board_class()]
+        self._turn_history: List[int] = [1]
         self.time_data: List[float] = []
 
         self.winner = 0
@@ -33,9 +34,8 @@ class Game:
         :param n: the number of turns to be played
         """
         played = 0
+        p_nb = self._turn_history[-1]
         while self.winner == 0 and played < n:
-            turn = self.history[-1].turn
-            p_nb = turn % 2 + 1
             player = self.players[p_nb - 1]
             moves = self.history[-1].get_legal_moves(p_nb)
 
@@ -43,7 +43,9 @@ class Game:
             res = player.play(self.history[-1], moves, p_nb)
             self.time_data.append(time.time() - beg)
 
-            self.history.append(self.history[-1].play(res, p_nb))
+            next_step, p_nb = self.history[-1].play(res, p_nb)
+            self.history.append(next_step)
+            self._turn_history.append(p_nb)
             self.winner = self.history[-1].winner()
             played += 1
 
