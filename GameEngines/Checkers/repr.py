@@ -5,7 +5,8 @@ import numpy as np
 def _repr(self):
     board: np.ndarray = self.board
 
-    line_acc = []
+    index = '  ' + ' '.join(f'{i}' for i in range(8))
+    line_acc = [index]
     for i in range(8):
         line = board.diagonal(4-i)
         line = line[~np.isnan(line)]
@@ -19,6 +20,6 @@ def _repr(self):
                 val_acc.append(f' ')
 
         line_acc.append(' \u2588 '.join(val_acc))
-        line_acc[-1] = line_acc[-1] + ' \u2588' if i % 2 == 1 else '\u2588 ' + line_acc[-1]
+        line_acc[-1] = f'{i} ' + (line_acc[-1] + ' \u2588' if i % 2 == 1 else '\u2588 ' + line_acc[-1])
 
     return '\n'.join(line_acc)

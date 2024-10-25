@@ -8,4 +8,3 @@ while g.winner == 0:
     g.play()
     print(g.history[-1])
     print()
-

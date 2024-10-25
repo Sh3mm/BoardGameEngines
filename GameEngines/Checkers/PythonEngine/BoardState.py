@@ -1,10 +1,15 @@
-from typing import Set, List
+from typing import Set, List, Iterator
+from enum import Enum
 import numpy as np
 
 from GameEngines._generic import AbsBoardState
 from GameEngines.Checkers.repr import _repr
 from GameEngines.Checkers.utilsTypes import *
 import GameEngines.Checkers.PythonEngine.utils as utils
+
+class PieceType(Enum):
+    Single = 1
+    King = 2,
 
 
 class BoardState(AbsBoardState):
@@ -42,9 +47,9 @@ class BoardState(AbsBoardState):
         )
         return new_state
 
-    def play(self, g_move: Move, pid: int) -> Tuple['AbsBoardState', int]:
+    def play(self, global_move: Move, pid: int) -> Tuple['AbsBoardState', int]:
         new_state = self.copy()
-        move = self._to_local(g_move)
+        move = self._to_local(global_move)
 
         # move the pawn and remove whatever is in its path
         beg_val = new_state._board[move[0]]
@@ -54,15 +59,20 @@ class BoardState(AbsBoardState):
         new_state._board[move[1]] = beg_val
 
         # change from 1 -> 2 on the end row
-        if [g_move[1][0] == 0, g_move[1][0] == 7][pid % 2]:
-            if abs(beg_val) == 1:
+        if [global_move[1][0] == 0, global_move[1][0] == 7][pid % 2]:
+            if abs(beg_val) == PieceType.Single.value:
                 new_state._board[move[1]] *= 2
 
-        check = self._check_moves(new_state._board, move[1])
-        if check[1]:
-            self._cached_moves = set(self._from_local((move[1], d)) for d in check[0])
-            return new_state, pid
-        self._cached_moves = None
+        # If the played move is a capture, check if multi jump available
+        is_capture = (xs[1] - xs[0] + ys[1] - ys[0]) > 1
+        if is_capture:
+            # If multi jump available, cache them for next step
+            check = new_state._get_moves(new_state._board, move[1])
+            if check[1]:
+                new_state._cached_moves = set(self._from_local((move[1], d)) for d in check[0])
+                return new_state, pid
+
+        new_state._cached_moves = None
         return new_state, (pid % 2) + 1
 
     def get_legal_moves(self, pid) -> Set[Move]:
@@ -70,18 +80,20 @@ class BoardState(AbsBoardState):
             return self._cached_moves.copy()
 
         pieces = self._board > 0 if pid == 1 else self._board < 0
-        coords: List[Coords] = list(zip(*pieces.nonzero()))
+        coords: Iterator[Coords] = zip(*pieces.nonzero())
 
-        captures = []
         moves = []
+        capture = False
         for coord in coords:
-            destinations, capture_found = self._check_moves(self._board, coord, len(captures) > 0)
+            destinations, _capture = self._get_moves(self._board, coord, capture)
             iter_dest = (self._from_local((coord, d)) for d in destinations)
-            if capture_found:
-                captures.extend(iter_dest)
-            else:
-                moves.extend(iter_dest)
-        return set(moves if len(captures) == 0 else captures)
+            # If a capture is detected, drop normal moves and only keep captures
+            if _capture and not capture:
+                moves = []
+                capture = True
+
+            moves.extend(iter_dest)
+        return set(moves)
 
     def score(self) -> Tuple[int, int]:
         return (
@@ -112,62 +124,35 @@ class BoardState(AbsBoardState):
         )
 
     @staticmethod
-    def _check_moves(board: np.ndarray, pos: Coords, capture_found: bool = False) -> Tuple[list, bool]:
+    def _get_moves(board: np.ndarray, pos: Coords, capture_found: bool = False) -> Tuple[list, bool]:
         val = board[pos]
-        if abs(val) == 1:
-            return BoardState._check_man_moves(board, pos, val, capture_found)
-        else:
-            return BoardState._check_king_moves(board, pos, val, capture_found)
+        piece_type, piece_sign = abs(val), np.sign(val)
 
-    @staticmethod
-    def _check_man_moves(board: np.ndarray, pos: Coords, val: int, capture_found: bool = False) -> Tuple[list, bool]:
-        treated: np.ndarray = np.abs(board + val) - abs(val)
+        normalized: np.ndarray = board * piece_sign
         directions = [
-            ((0, -1), treated[pos[0], :pos[1]][:-3:-1],  1),
-            ((0, +1), treated[pos[0], pos[1] + 1:][:2], -1),
-            ((-1, 0), treated[:pos[0], pos[1]][:-3:-1], -1),
-            ((+1, 0), treated[pos[0] + 1:, pos[1]][:2],  1),
+            ((0, -1), normalized[pos[0], :pos[1]][:-3:-1],  1),
+            ((0, +1), normalized[pos[0], pos[1] + 1:][:2], -1),
+            ((-1, 0), normalized[:pos[0], pos[1]][:-3:-1], -1),
+            ((+1, 0), normalized[pos[0] + 1:, pos[1]][:2],  1),
         ]
-        directions = [d[:2] for d in directions if len(d[1]) > 0 and np.sign(val) == d[2]]
+        # If the piece is not a king, only keep allowed diagonals
+        if piece_type == PieceType.Single.value:
+            directions = [d for d in directions if piece_sign == d[2]]
 
+        # Filtering out directions if no adjacent spaces
+        directions = [d[:2] for d in directions if len(d[1]) >= 1]
+
+        # Getting the captures if there are any
         captures = [
             (pos[0] + 2 * c[0], pos[1] + 2 * c[1])
             for c, d in directions
-            if len(d) > 1 and d[0] < 0 and d[1] == 0
+            # If there is space for a jump, the next space is an enemy and the jump space is open,
+            if len(d) >= 2 and d[0] < 0 and d[1] == 0
         ]
         if len(captures) > 0 or capture_found:
             return captures, True
         else:
             return [(pos[0] + c[0], pos[1] + c[1]) for c, d in directions if d[0] == 0], False
-
-    @staticmethod
-    def _check_king_moves(board: np.ndarray, pos: Coords, val: int, capture_found: bool = False) -> Tuple[list, bool]:
-        treated: np.ndarray = np.abs(board + val) - abs(val)
-        directions = [
-            ((0, -1), treated[pos[0], :pos[1]][::-1]),
-            ((0, +1), treated[pos[0], pos[1] + 1:]),
-            ((-1, 0), treated[:pos[0], pos[1]][::-1]),
-            ((+1, 0), treated[pos[0] + 1:, pos[1]]),
-        ]
-
-        moves = []
-        captures = []
-        for c, d in directions:
-            pieces = list(d.nonzero()[0])
-
-            if len(pieces) == 0 or d[pieces[0]] > 0:
-                continue
-
-            if d[0] == 0:
-                moves.append(c)
-
-            pieces.append(len(d))
-            captures.extend([(c[0] * i, c[1] * i) for i in range(pieces[0] + 2, pieces[1] + 1)])
-
-        if len(captures) > 0 or capture_found:
-            return captures, True
-        else:
-            return moves, False
 
 
 if __name__ == '__main__':
@@ -176,17 +161,19 @@ if __name__ == '__main__':
     b.board[(0, 3)] = 1
     b.board[(3, 7)] = 1
     b.board[(1, 3)] = -1
-    b.board[(2, 2)] = -1
-    b.board[(4, 6)] = -1
+    b.board[(2, 2)] = -2
+    b.board[(3, 6)] = -1
+    print(b)
     m = b.get_legal_moves(1)
     print(m)
     b, p = b.play(m.pop(), 1)
     print(p)
+    print(b)
     m = b.get_legal_moves(p)
     print(m)
     b, p = b.play(m.pop(), 1)
     print(p)
+    print(b)
     m = b.get_legal_moves(p)
     print(m)
-    print(b)
     print(b.board)
