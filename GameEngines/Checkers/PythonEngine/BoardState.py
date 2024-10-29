@@ -70,7 +70,6 @@ class BoardState(AbsBoardState):
 
         new_state._cached_moves = None
         new_state._active_pid = (self._active_pid % 2) + 1
-        print(self._active_pid, new_state._active_pid)
         return new_state
 
     @cache_moves

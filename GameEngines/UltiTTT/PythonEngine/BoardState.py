@@ -64,7 +64,6 @@ class BoardState(AbsBoardState):
         }
 
     def winner(self) -> int:
-        print(self._win_state)
         return self._get_winner_of(self._win_state)
 
     def score(self) -> Tuple[int, int]:

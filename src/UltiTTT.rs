@@ -9,12 +9,14 @@ type Coords = (usize, usize);
 type Move = (Coords, Coords);
 
 
-#[pyclass(subclass)]
+#[pyclass(subclass, dict)]
 pub struct RawUltiTTTState {
     #[pyo3(get)]
     board: Py<PyArray2<i8>>,
     #[pyo3(get)]
     turn: u32,
+    #[pyo3(get)]
+    curr_pid: u32,
     #[pyo3(get)]
     win_state: [i8; 9],
     #[pyo3(get)]
@@ -35,7 +37,8 @@ impl RawUltiTTTState {
                 board: PyArray2::from_owned_array(_py,Array2::zeros((9, 9))).to_owned(),
                 turn: 0,
                 win_state: [0; 9],
-                active_cell: -1
+                active_cell: -1,
+                curr_pid: 1
             };
         });
     }
@@ -50,13 +53,14 @@ impl RawUltiTTTState {
                 board: board.to_owned(),
                 turn: self.turn,
                 win_state: self.win_state,
-                active_cell: self.active_cell
+                active_cell: self.active_cell,
+                curr_pid: self.curr_pid
             };
         });
     }
 
     /// play an action on the UltiTTT State and returns the following State object
-    fn play(&self, c_move: Move, pid: isize) -> (Self, isize){
+    fn play(&self, c_move: Move) -> Self {
         let sup_cell = c_move.0;
         let sub_cell = c_move.1;
 
@@ -67,7 +71,7 @@ impl RawUltiTTTState {
 
         Python::with_gil(|_py| {
             let b_ref = new_board.board.as_ref(_py);
-            b_ref.set_item((sup_i, sub_i), pid).expect("Cell outside expected range");
+            b_ref.set_item((sup_i, sub_i), self.curr_pid).expect("Cell outside expected range");
 
             new_board.win_state[sup_i] = get_winner_of(
                 unsafe { b_ref.as_array() }.row(sup_i).iter()
@@ -79,14 +83,14 @@ impl RawUltiTTTState {
             if new_board.win_state[sub_i] != 0 { -1 }
             else { i8::try_from(sub_i).expect("Cell outside expected range") };
 
-        return (new_board, ((pid + 1) % 2) + 1);
+        new_board.curr_pid = (self.curr_pid % 2) + 1;
+        return new_board
     }
 
     /// standard implementation of the `get_legal_moves` python method. it returns the legal
     /// actions the specified player can take. In the case of the UltiTTT game, both players can
     /// play the same set of moves
-    #[pyo3(signature = (_pid=0))]
-    fn get_legal_moves(&self, _pid: usize) -> PyObject {
+    fn get_legal_moves(&self) -> PyObject {
         Python::with_gil(|_py| {
             let board = unsafe { self.board.as_ref(_py).as_array() };
             let active_cell = usize::try_from(self.active_cell);
