@@ -37,13 +37,15 @@ class Game:
         p_nb = self._turn_history[-1]
         while self.winner == 0 and played < n:
             player = self.players[p_nb - 1]
-            moves = self.history[-1].get_legal_moves(p_nb)
+            moves = self.history[-1].get_legal_moves()
 
             beg = time.time()
             res = player.play(self.history[-1], moves, p_nb)
             self.time_data.append(time.time() - beg)
 
-            next_step, p_nb = self.history[-1].play(res, p_nb)
+            next_step = self.history[-1].play(res)
+            p_nb = next_step.curr_pid
+
             self.history.append(next_step)
             self._turn_history.append(p_nb)
             self.winner = self.history[-1].winner()

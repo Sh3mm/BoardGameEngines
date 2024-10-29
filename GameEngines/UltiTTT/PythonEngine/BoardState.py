@@ -1,26 +1,26 @@
-from typing import List, Tuple
+from typing import List, Tuple, Set
+from copy import deepcopy
 from GameEngines.UltiTTT import Move
 from GameEngines.UltiTTT.repr import _repr
-from GameEngines import AbsBoardState
+from GameEngines._generic import AbsBoardState, cache_moves
 import numpy as np
 
 
 class BoardState(AbsBoardState):
-    def __init__(self, board: np.ndarray = None, win_state: List[int] = None, active_cell=None, turn=None):
-        if board is None or win_state is None or active_cell is None or turn is None:
-            turn = 0
-            board = np.zeros((9, 9), dtype=np.int8)
-            win_state = [0] * 9
-            active_cell = -1
-
-        self._turn = turn
-        self._board = board
-        self._win_state = win_state
-        self._active_cell = active_cell
+    def __init__(self):
+        self._turn = 0
+        self._board = np.zeros((9, 9), dtype=np.int8)
+        self._win_state = [0] * 9
+        self._active_cell = -1
+        self._active_pid = 1
 
     @property
     def turn(self) -> int:
         return self._turn
+
+    @property
+    def curr_pid(self) -> int:
+        return self._active_pid
 
     @property
     def board(self) -> np.ndarray:
@@ -30,23 +30,25 @@ class BoardState(AbsBoardState):
         return _repr(self)
 
     def copy(self) -> 'BoardState':
-        return BoardState(self._board.copy(), self._win_state.copy(), self._active_cell, self.turn)
+        return deepcopy(self)
 
-    def play(self, move: Move, pid: int) -> Tuple['AbsBoardState', int]:
+    def play(self, move: Move) -> 'AbsBoardState':
         new_board = self.copy()
         new_board._turn += 1
 
         tile = 3 * move[0][0] + move[0][1]
         sub_tile = 3 * move[1][0] + move[1][1]
 
-        new_board._board[tile, sub_tile] = pid
+        new_board._board[tile, sub_tile] = self._active_pid
         new_board._active_cell = sub_tile
 
         new_board._win_state[tile] = new_board._get_winner_of(new_board._board[tile])
+        new_board._active_pid = (self._active_pid % 2) + 1
 
-        return new_board, ((pid + 1) % 2) + 1
+        return new_board
 
-    def get_legal_moves(self, pid=0):
+    @cache_moves
+    def get_legal_moves(self, *, cache=False) -> Set[Move]:
         # if fist move or the active cell is full and any move can be taken
         if self._active_cell == -1 or self._win_state[self._active_cell] != 0:
             return {
@@ -76,11 +78,7 @@ class BoardState(AbsBoardState):
     @staticmethod
     def _get_winner_of(section: List[int]) -> int:
         """function that take in a TTT board and return's the winner"""
-        # tie
-        if 0 not in section:
-            return -1
-
-        # winner
+         # winner
         diags = [section[0::4], section[2:8:2]]
         rows = [section[0 + (3 * i): 3 + (3 * i)] for i in range(3)]
         cols = [section[i::3] for i in range(3)]
@@ -88,6 +86,10 @@ class BoardState(AbsBoardState):
         for line in diags + rows + cols:
             if (0 not in line) and (-1 not in line) and len(set(line)) == 1:
                 return line[0]
+
+        # tie
+        if 0 not in section:
+            return -1
 
         # not over
         return 0

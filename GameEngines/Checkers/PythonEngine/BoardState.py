@@ -1,8 +1,9 @@
 from typing import Set, Iterator
 from enum import Enum
+from copy import deepcopy
 import numpy as np
 
-from GameEngines import AbsBoardState
+from GameEngines._generic import AbsBoardState, cache_moves
 from GameEngines.Checkers.repr import _repr
 from GameEngines.Checkers.utilsTypes import *
 import GameEngines.Checkers.PythonEngine.utils as utils
@@ -18,19 +19,19 @@ class BoardState(AbsBoardState):
     Rules for the game can be found online
     """
 
-    def __init__(self, board: np.ndarray = None, turn: int = None, cached_moves: Set[Move] = None):
-        if True in [c is None for c in [board, turn]]:
-            turn = 0
-            board = utils.board_setup()
-            cached_moves = None
-
-        self._board = board
-        self._turn = turn
-        self._cached_moves = cached_moves
+    def __init__(self):
+        self._board = utils.board_setup()
+        self._turn = 0
+        self._cached_moves = None
+        self._active_pid = 1
 
     @property
     def turn(self) -> int:
         return self._turn
+
+    @property
+    def curr_pid(self) -> int:
+        return self._active_pid
 
     @property
     def board(self) -> np.ndarray:
@@ -40,14 +41,9 @@ class BoardState(AbsBoardState):
         return _repr(self)
 
     def copy(self) -> 'BoardState':
-        new_state = BoardState(
-            self._board.copy(),
-            self._turn,
-            self._cached_moves.copy() if self._cached_moves is not None else None,
-        )
-        return new_state
+        return deepcopy(self)
 
-    def play(self, global_move: Move, pid: int) -> Tuple['AbsBoardState', int]:
+    def play(self, global_move: Move) -> 'AbsBoardState':
         new_state = self.copy()
         move = self._to_local(global_move)
 
@@ -59,7 +55,7 @@ class BoardState(AbsBoardState):
         new_state._board[move[1]] = beg_val
 
         # change from 1 -> 2 on the end row
-        if [global_move[1][0] == 0, global_move[1][0] == 7][pid % 2]:
+        if [global_move[1][0] == 0, global_move[1][0] == 7][self._active_pid % 2]:
             if abs(beg_val) == PieceType.Single.value:
                 new_state._board[move[1]] *= 2
 
@@ -70,16 +66,18 @@ class BoardState(AbsBoardState):
             check = new_state._get_moves(new_state._board, move[1])
             if check[1]:
                 new_state._cached_moves = set(self._from_local((move[1], d)) for d in check[0])
-                return new_state, pid
+                return new_state
 
         new_state._cached_moves = None
-        return new_state, (pid % 2) + 1
+        new_state._active_pid = (self._active_pid % 2) + 1
+        return new_state
 
-    def get_legal_moves(self, pid) -> Set[Move]:
+    @cache_moves
+    def get_legal_moves(self, *, cache=False) -> Set[Move]:
         if self._cached_moves is not None:
             return self._cached_moves.copy()
 
-        pieces = self._board > 0 if pid == 1 else self._board < 0
+        pieces = self._board > 0 if self._active_pid == 1 else self._board < 0
         coords: Iterator[Coords] = zip(*pieces.nonzero())
 
         moves = []

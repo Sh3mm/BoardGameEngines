@@ -12,12 +12,14 @@ type Coords = (usize, usize);
 type Move = (Coords, Coords);
 
 
-#[pyclass(subclass)]
+#[pyclass(subclass, dict)]
 pub struct RawAvalamState {
     #[pyo3(get)]
     board: Py<PyArray2<i32>>,
     #[pyo3(get, set)]
     ratios: Py<PyArray3<i32>>,
+    #[pyo3(get)]
+    curr_pid: u32,
     #[pyo3(get)]
     turn: u32,
     moves: Py<PySet>,
@@ -89,7 +91,7 @@ impl RawAvalamState {
             let board = PyArray2::from_owned_array(_py, RawAvalamState::base_array()).to_owned();
             let ratios = PyArray3::from_owned_array(_py, RawAvalamState::base_ratios()).to_owned();
             let moves = gen_moves(board.as_ref(_py));
-            return RawAvalamState {board, ratios, turn: 0, moves, on_move_call: None}
+            return RawAvalamState {board, ratios, turn: 0, moves, on_move_call: None, curr_pid: 1}
         });
     }
     /// copies and returns a python avalam State object
@@ -109,13 +111,14 @@ impl RawAvalamState {
                 ratios: ratios.to_owned(),
                 moves,
                 turn: self.turn,
-                on_move_call: None
+                on_move_call: None,
+                curr_pid: self.curr_pid
             }
         })
     }
 
     /// play an action on the Avalam State and returns the following State object
-    fn play(&self, c_move: Move, pid: isize) -> (Self, isize){
+    fn play(&self, c_move: Move) -> Self{
         let origin = c_move.0;
         let dest = c_move.1;
 
@@ -147,15 +150,15 @@ impl RawAvalamState {
             r_ref.set_item((0, dest.0, dest.1), top_0 + bottom_0).expect("Destination outside expected range");
             r_ref.set_item((1, dest.0, dest.1), top_1 + bottom_1).expect("Destination outside expected range");
         });
-        return (new_board, ((pid + 1) % 2) + 1);
+
+        new_board.curr_pid = (self.curr_pid % 2) + 1;
+        return new_board;
     }
 
     /// standard implementation of the `get_legal_moves` python method. it returns the legal
     /// actions the specified player can take. In the case of the Avalam game, both players can
     /// play the same set of moves
-    // #[args(_pid=0)]
-    #[pyo3(signature = (_pid=0))]
-    fn get_legal_moves(&mut self, _pid: usize) -> Py<PySet> {
+    fn get_legal_moves(&mut self) -> Py<PySet> {
         return self._get_legal_moves()
     }
 
