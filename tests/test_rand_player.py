@@ -15,6 +15,6 @@ def test_player_play(board):
     player = RandomPlayer('test-name')
     b = board()
 
-    res = player.play(b, b.get_legal_moves(1), 1)
+    res = player.play(b, b.get_legal_moves(), 1)
 
-    assert res in b.get_legal_moves(1)
+    assert res in b.get_legal_moves()

@@ -28,9 +28,9 @@ def test_play_from_init(board_state):
     for i, j in product(range(3), range(3)):
         if (i, j) == (1, 1):
             continue
-        b.play(((1, 1), (i, j)), 1)
+        b.play(((1, 1), (i, j)))
 
-    b.play(((1, 1), (1, 1)), 2)
+    b.play(((1, 1), (1, 1)))
 
     assert b.get_legal_moves() == test_play_from_init_moves_ultittt
 
@@ -42,9 +42,9 @@ def test_winner(board_state):
     assert b.winner() == 0
 
     set_win_cell = lambda x, y: (
-            b.play((x, (0, 0)), y) and
-            b.play((x, (0, 1)), y) and
-            b.play((x, (0, 2)), y)
+            b.play((x, (0, 0))) and
+            b.play((x, (0, 1))) and
+            b.play((x, (0, 2)))
     )
 
     #  1, -1, 1,

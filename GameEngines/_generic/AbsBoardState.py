@@ -20,6 +20,16 @@ class AbsBoardState(ABC):
 
     @property
     @abstractmethod
+    def curr_pid(self) -> int:
+        """
+        getter for the current player ID of a game according to the state
+
+        :return: The current Player ID
+        """
+        ...
+
+    @property
+    @abstractmethod
     def board(self) -> np.ndarray:
         """
         getter for the raw form of the board in a numpy array
@@ -29,13 +39,12 @@ class AbsBoardState(ABC):
         ...
 
     @abstractmethod
-    def play(self, move, pid: int) -> Tuple['AbsBoardState', int]:
+    def play(self, move) -> 'AbsBoardState':
         """
         method used to create the next state of the game if a move is played. The method does NOT verify that the move
         is legal and will play it regardless
 
         :param move: the move to be played
-        :param pid: the player ID of the current player
         :return: a new static BoardState
         """
         ...
@@ -50,10 +59,10 @@ class AbsBoardState(ABC):
         ...
 
     @abstractmethod
-    def get_legal_moves(self, pid) -> set:
+    def get_legal_moves(self, *, cache=False) -> set:
         """
-        method used to get all legal moves that can be executed at the current moment for the current player
-
+        method used to get all legal moves that can be executed at the current moment for the current player.
+        :param cache:
         :return: a set of legal moves
         """
         ...
