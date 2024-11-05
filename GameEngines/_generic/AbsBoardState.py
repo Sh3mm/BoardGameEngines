@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Any, Dict
 from abc import ABC, abstractmethod
 import numpy as np
 
@@ -85,5 +85,15 @@ class AbsBoardState(ABC):
         the end of the game, all players will be scored 0
 
         :return: a tuple of the current score of all players
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    def _load_data(cls, data: Dict[str, Any]) -> 'AbsBoardState':
+        """
+        creates an object based on the passed data
+
+        :return: a BoardState
         """
         ...

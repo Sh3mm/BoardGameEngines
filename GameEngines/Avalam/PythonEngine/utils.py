@@ -43,9 +43,10 @@ def gen_moves(board: np.ndarray):
             continue
         pos = np.absolute(board[max(i - 1, 0): min(i + 2, lines), max(j - 1, 0): min(j + 2, rows)])
         legit = np.where((pos != 0) & (pos + abs(board[i, j]) <= 5))
+
         legit = zip(
-            legit[0] - (1 if i != 0 else 0) + i,
-            legit[1] - (1 if j != 0 else 0) + j
+            (legit[0] - (1 if i != 0 else 0) + i).tolist(),
+            (legit[1] - (1 if j != 0 else 0) + j).tolist()
         )
 
         def accumulate(acc: set, val: Coords):

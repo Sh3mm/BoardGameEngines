@@ -85,6 +85,18 @@ class BoardState(AbsBoardState):
         # winner
         return int(p1 < p2) + 1
 
+    @classmethod
+    def _load_data(cls, data):
+        new_board = BoardState()
+        new_board._board = data["board"]
+        new_board.ratios = data["ratios"]
+        new_board._moves = data["move_cache"]
+        new_board._on_move_call = data["on_move_call"]
+        new_board._turn = data["turn"]
+        new_board._active_pid = data["active_pid"]
+
+        return new_board
+
     def _update_moves(self, origin: Coords, dest: Coords):
         """method used to update the cached moves for the state upon creation"""
         for i, j in product(range(-1, 2), range(-1, 2)):

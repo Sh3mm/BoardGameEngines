@@ -1,4 +1,4 @@
-from typing import List, Tuple, Set
+from typing import List, Tuple, Set, Dict, Any
 from copy import deepcopy
 from GameEngines.UltiTTT import Move
 from GameEngines.UltiTTT.repr import _repr
@@ -8,9 +8,9 @@ import numpy as np
 
 class BoardState(AbsBoardState):
     def __init__(self):
-        self._turn = 0
         self._board = np.zeros((9, 9), dtype=np.int8)
         self._win_state = [0] * 9
+        self._turn = 0
         self._active_cell = -1
         self._active_pid = 1
 
@@ -74,6 +74,16 @@ class BoardState(AbsBoardState):
             return 1, 0
         if w == 2:
             return 0, 1
+
+    @classmethod
+    def _load_data(cls, data: Dict[str, Any]) -> 'BoardState':
+        new_board = BoardState()
+        new_board._board = data["board"]
+        new_board._win_state = -1 # TODO
+        new_board._turn = data["turn"]
+        new_board._active_cell = -1 # TODO
+        new_board._active_pid = data["active_pid"]
+        return new_board
 
     @staticmethod
     def _get_winner_of(section: List[int]) -> int:
