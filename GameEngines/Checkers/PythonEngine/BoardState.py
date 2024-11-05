@@ -1,4 +1,4 @@
-from typing import Set, Iterator
+from typing import Set, Iterator, Dict, Any
 from enum import Enum
 from copy import deepcopy
 import numpy as np
@@ -21,8 +21,8 @@ class BoardState(AbsBoardState):
 
     def __init__(self):
         self._board = utils.board_setup()
-        self._turn = 0
         self._cached_moves = None
+        self._turn = 0
         self._active_pid = 1
 
     @property
@@ -106,6 +106,15 @@ class BoardState(AbsBoardState):
             return 0
 
         return 1 if p1 > 0 else 2
+
+    @classmethod
+    def _load_data(cls, data: Dict[str, Any]) -> 'BoardState':
+        new_board = BoardState()
+        new_board._board = data["board"]
+        new_board._cached_moves = data["cached_moves"]
+        new_board._turn = data["turn"]
+        new_board._active_pid = data["active_pid"]
+        return new_board
 
     @staticmethod
     def _from_local(move: Move) -> Move:
