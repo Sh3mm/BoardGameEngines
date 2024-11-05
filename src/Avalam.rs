@@ -1,11 +1,11 @@
 use std::cmp::min;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use itertools::{iproduct};
 use ndarray::{Array2, Array3, s};
 use numpy::{PyArray2, PyArray3, ndarray::array};
-use pyo3::{IntoPy, Py, pyclass, pymethods, Python};
+use pyo3::{IntoPy, Py, pyclass, pymethods, Python, PyObject};
 use pyo3::prelude::PyModule;
-use pyo3::types::{PySet};
+use pyo3::types::{PyInt, PySet, PyType};
 
 
 type Coords = (usize, usize);
@@ -15,22 +15,22 @@ type Move = (Coords, Coords);
 #[pyclass(subclass, dict)]
 pub struct RawAvalamState {
     #[pyo3(get)]
-    board: Py<PyArray2<i32>>,
+    board: Py<PyArray2<i64>>,
     #[pyo3(get, set)]
-    ratios: Py<PyArray3<i32>>,
+    ratios: Py<PyArray3<i64>>,
     #[pyo3(get)]
     curr_pid: u32,
     #[pyo3(get)]
     turn: u32,
     moves: Py<PySet>,
-    on_move_call: Option<(Coords, Coords)>
+    on_move_call: Option<Move>
 }
 
 unsafe impl Send for RawAvalamState {}
 
 impl RawAvalamState {
     /// returns a raw avalam board in the initial state
-    fn base_array() -> Array2<i32>{
+    fn base_array() -> Array2<i64>{
         return array![
             [ 0,  0,  1, -1,  0,  0,  0,  0,  0],
             [ 0,  1, -1,  1, -1,  0,  0,  0,  0],
@@ -45,7 +45,7 @@ impl RawAvalamState {
     }
 
     /// returns the ration table of an avalam board in the initial state
-    fn base_ratios() -> Array3<i32>{
+    fn base_ratios() -> Array3<i64>{
         return array![[
             [0, 0, 1, 0, 0, 0, 0, 0, 0],
             [0, 1, 0, 1, 0, 0, 0, 0, 0],
@@ -207,7 +207,7 @@ impl RawAvalamState {
     /// If the game is a tie it returns -1
     ///
     /// Otherwise, it returns the player id of the winner
-    fn winner(&mut self) -> isize{
+    fn winner(&mut self) -> isize {
         Python::with_gil(|_py|{
             // unfinished
             if self._get_legal_moves()
@@ -227,10 +227,33 @@ impl RawAvalamState {
         })
     }
 
+    #[getter]
+    fn _moves(&self) -> &Py<PySet> {
+        return &self.moves
+    }
+
+    #[getter]
+    fn _on_move_call(&self) -> Option<Move> {
+        return self.on_move_call.clone()
+    }
+
+    #[classmethod]
+    fn _load_data(_: &PyType, data: HashMap<&str, PyObject>) -> Self {
+        Python::with_gil(|_py| {
+            return Self{
+                board: data.get("board").unwrap().extract(_py).unwrap(),//.downcast::<PyArray2<i64>>(_py).unwrap().into_py(_py),
+                ratios: data.get("ratios").unwrap().extract(_py).unwrap(),//.downcast::<PyArray3<i64>>(_py).unwrap().into_py(_py),
+                curr_pid: data.get("active_pid").unwrap().extract(_py).unwrap(),
+                turn: data.get("turn").unwrap().extract(_py).unwrap(),
+                moves: data.get("move_cache").unwrap().downcast::<PySet>(_py).unwrap().into(),
+                on_move_call: data.get("on_move_call").unwrap().extract(_py).unwrap(),
+            }
+        })
+    }
 }
 
 /// generates all possible action given a specific raw Avalam board configuration
-pub fn gen_moves(board: &PyArray2<i32>) -> Py<PySet>{
+pub fn gen_moves(board: &PyArray2<i64>) -> Py<PySet>{
     Python::with_gil(|_py|{
         let board = unsafe { board.as_array() }.mapv(|v| { v.abs() });
         let mut moves = HashSet::<Move>::new();
