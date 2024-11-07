@@ -79,9 +79,9 @@ class BoardState(AbsBoardState):
     def _load_data(cls, data: Dict[str, Any]) -> 'BoardState':
         new_board = BoardState()
         new_board._board = data["board"]
-        new_board._win_state = -1 # TODO
+        new_board._win_state = data["win_state"]
         new_board._turn = data["turn"]
-        new_board._active_cell = -1 # TODO
+        new_board._active_cell = data["active_cell"]
         new_board._active_pid = data["active_pid"]
         return new_board
 
