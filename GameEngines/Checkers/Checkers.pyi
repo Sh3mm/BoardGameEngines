@@ -1,4 +1,4 @@
-from typing import Set, Tuple
+from typing import Set, Tuple, Dict, Any
 from numpy import ndarray
 from GameEngines._generic import AbsBoardState
 from GameEngines.Checkers.utilsTypes import Move
@@ -11,6 +11,9 @@ class BoardState(AbsBoardState):
     ratios: ndarray
 
     def __init__(self): ...
+
+    @property
+    def curr_pid(self) -> int: ...
 
     @property
     def turn(self) -> int: ...
@@ -29,3 +32,6 @@ class BoardState(AbsBoardState):
     def score(self) -> Tuple[int, int]: ...
 
     def winner(self) -> int: ...
+
+    @classmethod
+    def _load_data(cls, data: Dict[str, Any]) -> 'AbsBoardState': ...

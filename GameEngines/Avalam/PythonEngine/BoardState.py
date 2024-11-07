@@ -17,7 +17,7 @@ class BoardState(AbsBoardState):
     INIT_MOVES = utils.gen_moves(utils.board_setup()[0])
 
     def __init__(self):
-        self._board, self.ratios = self.INIT_INFO
+        self._board, self._ratios = self.INIT_INFO
         self._moves = self.INIT_MOVES
         self._on_move_call = None
         self._turn = 0
@@ -34,6 +34,10 @@ class BoardState(AbsBoardState):
     @property
     def board(self) -> np.ndarray:
         return self._board
+
+    @property
+    def ratios(self) -> np.ndarray:
+        return self._ratios
 
     def __repr__(self) -> str:
         return _repr(self)
@@ -89,7 +93,7 @@ class BoardState(AbsBoardState):
     def _load_data(cls, data):
         new_board = BoardState()
         new_board._board = data["board"]
-        new_board.ratios = data["ratios"]
+        new_board._ratios = data["ratios"]
         new_board._moves = data["move_cache"]
         new_board._on_move_call = data["on_move_call"]
         new_board._turn = data["turn"]
@@ -113,5 +117,5 @@ class BoardState(AbsBoardState):
 
     def _update_ratios(self, origin: Coords, dest: Coords):
         """method used to update the ratios for the state upon creation"""
-        self.ratios[:, dest[0], dest[1]] += self.ratios[:, origin[0], origin[1]]
-        self.ratios[:, origin[0], origin[1]] = 0
+        self._ratios[:, dest[0], dest[1]] += self._ratios[:, origin[0], origin[1]]
+        self._ratios[:, origin[0], origin[1]] = 0
