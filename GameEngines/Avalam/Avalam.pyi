@@ -1,15 +1,17 @@
-from typing import Set, Tuple, Dict, Any
+from typing import Set, Tuple, Dict, Any, Type
 from numpy import ndarray
-from GameEngines._generic import AbsBoardState
+from GameEngines.abstract import AbsBoardState, AbsSaveModule
 from GameEngines.Avalam.utilsTypes import Move
+from GameEngines.Avalam.SaveModule import AvalamSave
 
 class BoardState(AbsBoardState):
     """
     This class is the implementation of BoardState for the `Avalam` game.
     Rules for the game can be found online
     """
+    _DEFAULT_SAVE_MOD = AvalamSave
 
-    def __init__(self): ...
+    def __init__(self, *, save: Type['AbsSaveModule'] = _DEFAULT_SAVE_MOD): ...
 
     @property
     def curr_pid(self) -> int: ...
@@ -25,7 +27,7 @@ class BoardState(AbsBoardState):
 
     def __repr__(self) -> str: ...
 
-    def copy(self) -> 'BoardState': ...
+    def copy(self, *, cache=False) -> 'BoardState': ...
 
     def play(self, move: Move) -> 'AbsBoardState': ...
 

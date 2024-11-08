@@ -1,29 +1,34 @@
 use std::cmp::min;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashSet};
 use itertools::{iproduct};
 use ndarray::{Array2, Array3, s};
 use numpy::{PyArray2, PyArray3, ndarray::array};
 use pyo3::{IntoPy, Py, pyclass, pymethods, Python, PyObject};
 use pyo3::prelude::PyModule;
-use pyo3::types::{PyInt, PySet, PyType};
+use pyo3::types::{PySet, PyType};
 
 
 type Coords = (usize, usize);
 type Move = (Coords, Coords);
 
-
+#[derive(Clone)]
 #[pyclass(subclass, dict)]
 pub struct RawAvalamState {
-    #[pyo3(get)]
-    board: Py<PyArray2<i64>>,
     #[pyo3(get, set)]
-    ratios: Py<PyArray3<i64>>,
-    #[pyo3(get)]
-    curr_pid: u32,
-    #[pyo3(get)]
-    turn: u32,
-    moves: Py<PySet>,
-    on_move_call: Option<Move>
+    _board: Py<PyArray2<i64>>,
+    #[pyo3(get, set)]
+    _ratios: Py<PyArray3<i64>>,
+    #[pyo3(get, set)]
+    _curr_pid: u32,
+    #[pyo3(get, set)]
+    _turn: u32,
+    #[pyo3(get, set)]
+    _moves: Py<PySet>,
+    #[pyo3(get, set)]
+    _on_move_call: Option<Move>,
+
+    #[pyo3(get, set)]
+    _save_mod: Py<PyType>
 }
 
 unsafe impl Send for RawAvalamState {}
@@ -73,11 +78,18 @@ impl RawAvalamState {
     /// returns a set of all legal actions that can be used in a specific state
     fn _get_legal_moves(&mut self) -> Py<PySet> {
         Python::with_gil(|_py| {
-            if let Some((origin, dest)) = self.on_move_call {
-                self.on_move_call = None;
+            if let Some((origin, dest)) = self._on_move_call {
+                self._on_move_call = None;
                 self._update_move(_py, origin, dest);
             }
-            self.moves.as_ref(_py).into()
+            self._moves.as_ref(_py).into()
+        })
+    }
+
+    fn default_save_mod() -> Py<PyType> {
+        Python::with_gil(|_py| {
+            let SaveModule = _py.import("GameEngines.Avalam.SaveModule").unwrap();
+            SaveModule.getattr("AvalamSave").unwrap().extract().unwrap()
         })
     }
 }
@@ -85,34 +97,49 @@ impl RawAvalamState {
 #[pymethods]
 impl RawAvalamState {
     #[new]
+    #[pyo3(signature=(save_module=None))]
     /// Creates the initial Avalam State python object
-    fn new() -> Self{
+    fn new(save_module: Option<Py<PyType>>) -> Self{
         return Python::with_gil(|_py|{
+            let avalam_save: Py<PyType> = match save_module {
+                None => { Self::default_save_mod()}
+                Some(save_mod) => {save_mod}
+            };
+
             let board = PyArray2::from_owned_array(_py, RawAvalamState::base_array()).to_owned();
             let ratios = PyArray3::from_owned_array(_py, RawAvalamState::base_ratios()).to_owned();
             let moves = gen_moves(board.as_ref(_py));
-            return RawAvalamState {board, ratios, turn: 0, moves, on_move_call: None, curr_pid: 1}
+            return RawAvalamState {
+                _board: board,
+                _ratios: ratios,
+                _turn: 0,
+                _moves: moves,
+                _on_move_call: None,
+                _curr_pid: 1,
+                _save_mod: avalam_save
+            }
         });
     }
     /// copies and returns a python avalam State object
     fn copy(&self) -> Self{
         Python::with_gil(|_py| {
             let copy_module = PyModule::import(_py, "copy").unwrap();
-            let moves = copy_module.call_method1("copy", (self.moves.as_ref(_py),)).unwrap().downcast::<PySet>().unwrap().into();
+            let moves = copy_module.call_method1("copy", (self._moves.as_ref(_py),)).unwrap().downcast::<PySet>().unwrap().into();
 
-            let board = unsafe { PyArray2::new(_py, self.board.as_ref(_py).dims(), false) };
-            let ratios = unsafe { PyArray3::new(_py, self.ratios.as_ref(_py).dims(), false) };
+            let board = unsafe { PyArray2::new(_py, self._board.as_ref(_py).dims(), false) };
+            let ratios = unsafe { PyArray3::new(_py, self._ratios.as_ref(_py).dims(), false) };
 
-            self.board.as_ref(_py).copy_to(board).expect("");
-            self.ratios.as_ref(_py).copy_to(ratios).expect("");
+            self._board.as_ref(_py).copy_to(board).expect("");
+            self._ratios.as_ref(_py).copy_to(ratios).expect("");
 
             RawAvalamState {
-                board: board.to_owned(),
-                ratios: ratios.to_owned(),
-                moves,
-                turn: self.turn,
-                on_move_call: None,
-                curr_pid: self.curr_pid
+                _board: board.to_owned(),
+                _ratios: ratios.to_owned(),
+                _moves: moves,
+                _turn: self._turn,
+                _on_move_call: None,
+                _curr_pid: self._curr_pid,
+                _save_mod: self._save_mod.clone()
             }
         })
     }
@@ -123,12 +150,12 @@ impl RawAvalamState {
         let dest = c_move.1;
 
         let mut new_board = self.copy();
-        new_board.on_move_call = Some((origin, dest));
-        new_board.turn += 1;
+        new_board._on_move_call = Some((origin, dest));
+        new_board._turn += 1;
 
         Python::with_gil(|_py| {
             // board Update
-            let b_ref = new_board.board.as_ref(_py);
+            let b_ref = new_board._board.as_ref(_py);
             let top = unsafe{ *b_ref.uget(origin) };
             let bottom = unsafe{ *b_ref.uget(dest) };
             let final_val = if top >= 0 { top + bottom.abs() } else { top - bottom.abs() };
@@ -137,7 +164,7 @@ impl RawAvalamState {
             b_ref.set_item(dest, final_val).expect("Destination outside expected range");
 
             // Ratios Update
-            let r_ref = new_board.ratios.as_ref(_py);
+            let r_ref = new_board._ratios.as_ref(_py);
             let top_0 = unsafe{ *r_ref.uget((0, origin.0, origin.1)) };
             let top_1 = unsafe{ *r_ref.uget((1, origin.0, origin.1)) };
 
@@ -151,7 +178,7 @@ impl RawAvalamState {
             r_ref.set_item((1, dest.0, dest.1), top_1 + bottom_1).expect("Destination outside expected range");
         });
 
-        new_board.curr_pid = (self.curr_pid % 2) + 1;
+        new_board._curr_pid = (self._curr_pid % 2) + 1;
         return new_board;
     }
 
@@ -165,8 +192,8 @@ impl RawAvalamState {
     /// updates the current State move cache upon it's creation. Usually by copy.
     fn _update_move(&self, _py: Python, origin: Coords, dest: Coords) {
         // Moves Update
-        let move_set = self.moves.as_ref(_py).downcast::<PySet>().unwrap();
-        let b_ref = self.board.as_ref(_py);
+        let move_set = self._moves.as_ref(_py).downcast::<PySet>().unwrap();
+        let b_ref = self._board.as_ref(_py);
         // Impossible origin
         let i_range = origin.0.saturating_sub(1)..min(origin.0 + 2, 9);
         let j_range = origin.1.saturating_sub(1)..min(origin.1 + 2, 9);
@@ -191,7 +218,7 @@ impl RawAvalamState {
     /// towers controlled by each player
     fn score(&self) -> (usize, usize){
         Python::with_gil(|_py| {
-            let array = unsafe { self.board.as_ref(_py).as_array() };
+            let array = unsafe { self._board.as_ref(_py).as_array() };
             array.fold((0, 0), |b, &v| {
                 if v > 0 { return (b.0 + 1, b.1); }
                 if v < 0 { return (b.0, b.1 + 1); }
@@ -227,30 +254,43 @@ impl RawAvalamState {
         })
     }
 
-    #[getter]
-    fn _moves(&self) -> &Py<PySet> {
-        return &self.moves
-    }
-
-    #[getter]
-    fn _on_move_call(&self) -> Option<Move> {
-        return self.on_move_call.clone()
-    }
-
-    #[classmethod]
-    fn _load_data(_: &PyType, data: HashMap<&str, PyObject>) -> Self {
-        Python::with_gil(|_py| {
-            return Self{
-                board: data.get("board").unwrap().extract(_py).unwrap(),//.downcast::<PyArray2<i64>>(_py).unwrap().into_py(_py),
-                ratios: data.get("ratios").unwrap().extract(_py).unwrap(),//.downcast::<PyArray3<i64>>(_py).unwrap().into_py(_py),
-                curr_pid: data.get("active_pid").unwrap().extract(_py).unwrap(),
-                turn: data.get("turn").unwrap().extract(_py).unwrap(),
-                moves: data.get("move_cache").unwrap().downcast::<PySet>(_py).unwrap().into(),
-                on_move_call: data.get("on_move_call").unwrap().extract(_py).unwrap(),
-            }
+    fn save(&self, file: PyObject) {
+        Python::with_gil(|_py|{
+            let py_self = self.clone().into_py(_py);
+            self._save_mod.call_method(
+                _py, "save_state", (file, py_self), None
+            ).unwrap();
         })
     }
+
+    #[staticmethod]
+    #[pyo3(signature=(file, save_module=None))]
+    fn load(file: PyObject, save_module: Option<Py<PyType>>) -> Self {
+        let avalam_save: Py<PyType> = match save_module {
+            None => { Self::default_save_mod()}
+            Some(save_mod) => {save_mod}
+        };
+
+        Python::with_gil(|_py|{
+            avalam_save.call_method(
+                _py, "load_state",  (file, _py.get_type::<Self>()), None
+            ).unwrap().extract(_py).unwrap()
+        })
+    }
+
+    #[getter]
+    fn turn(&self) -> u32 { return self._turn }
+
+    #[getter]
+    fn curr_pid(&self) -> u32 { return self._curr_pid }
+
+    #[getter]
+    fn board(&self) -> &Py<PyArray2<i64>> { return &self._board }
+
+    #[getter]
+    fn ratios(&self) -> &Py<PyArray3<i64>> { return &self._ratios }
 }
+
 
 /// generates all possible action given a specific raw Avalam board configuration
 pub fn gen_moves(board: &PyArray2<i64>) -> Py<PySet>{

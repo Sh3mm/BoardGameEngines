@@ -1,6 +1,7 @@
-from typing import Set, Tuple, Dict, Any
+from pathlib import Path
+from typing import Set, Tuple, Dict, Any, Union
 from numpy import ndarray
-from GameEngines._generic import AbsBoardState
+from GameEngines.abstract import AbsBoardState
 from GameEngines.Checkers.utilsTypes import Move
 
 class BoardState(AbsBoardState):
@@ -8,7 +9,6 @@ class BoardState(AbsBoardState):
     This class is the implementation of BoardState for the `Avalam` game.
     Rules for the game can be found online
     """
-    ratios: ndarray
 
     def __init__(self): ...
 
@@ -23,7 +23,7 @@ class BoardState(AbsBoardState):
 
     def __repr__(self) -> str: ...
 
-    def copy(self) -> 'BoardState': ...
+    def copy(self, *, cache=False) -> 'BoardState': ...
 
     def play(self, move: Move) -> 'AbsBoardState': ...
 
@@ -33,5 +33,7 @@ class BoardState(AbsBoardState):
 
     def winner(self) -> int: ...
 
-    @classmethod
-    def _load_data(cls, data: Dict[str, Any]) -> 'AbsBoardState': ...
+    def save(self, file: Union[str, Path]): ...
+
+    @staticmethod
+    def load(file: Union[str, Path]) -> 'AbsBoardState': ...

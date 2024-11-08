@@ -1,9 +1,14 @@
+from pathlib import Path
+
 import numpy as np
 from copy import deepcopy
-from typing import Set
+from typing import Set, Type, Optional, Union
 from itertools import product
-from GameEngines._generic import AbsBoardState, cache_moves
+from GameEngines.abstract import AbsBoardState, AbsSaveModule
+from GameEngines.cache_utils import cache_moves, ignore_cache
+
 from GameEngines.Avalam.repr import _repr
+from GameEngines.Avalam.SaveModule import AvalamSave
 import GameEngines.Avalam.PythonEngine.utils as utils
 from GameEngines.Avalam.utilsTypes import *
 
@@ -15,13 +20,17 @@ class BoardState(AbsBoardState):
     """
     INIT_INFO = utils.board_setup()
     INIT_MOVES = utils.gen_moves(utils.board_setup()[0])
+    _DEFAULT_SAVE_MOD = AvalamSave
 
-    def __init__(self):
-        self._board, self._ratios = self.INIT_INFO
-        self._moves = self.INIT_MOVES
-        self._on_move_call = None
-        self._turn = 0
-        self._active_pid = 1
+    def __init__(self, *, save_module: Type[AbsSaveModule] = _DEFAULT_SAVE_MOD):
+        self._board: np.ndarray = self.INIT_INFO[0]
+        self._ratios: np.ndarray = self.INIT_INFO[1]
+        self._moves: Set[Move] = self.INIT_MOVES
+        self._on_move_call: Optional[Move] = None
+        self._turn: int = 0
+        self._curr_pid: int = 1
+
+        self._save_mod: AbsSaveModule = save_module()
 
     @property
     def turn(self) -> int:
@@ -29,7 +38,7 @@ class BoardState(AbsBoardState):
 
     @property
     def curr_pid(self) -> int:
-        return self._active_pid
+        return self._curr_pid
 
     @property
     def board(self) -> np.ndarray:
@@ -42,6 +51,7 @@ class BoardState(AbsBoardState):
     def __repr__(self) -> str:
         return _repr(self)
 
+    @ignore_cache
     def copy(self) -> 'BoardState':
         return deepcopy(self)
 
@@ -60,9 +70,8 @@ class BoardState(AbsBoardState):
         new_board._update_ratios(origin, dest)
 
         new_board._on_move_call = (origin, dest)
-        new_board._active_pid =  (self._active_pid % 2) + 1
+        new_board._curr_pid = (self._curr_pid % 2) + 1
         return new_board
-
 
     @cache_moves
     def get_legal_moves(self, *, cache=False) -> Set[Move]:
@@ -89,17 +98,13 @@ class BoardState(AbsBoardState):
         # winner
         return int(p1 < p2) + 1
 
-    @classmethod
-    def _load_data(cls, data):
-        new_board = BoardState()
-        new_board._board = data["board"]
-        new_board._ratios = data["ratios"]
-        new_board._moves = data["move_cache"]
-        new_board._on_move_call = data["on_move_call"]
-        new_board._turn = data["turn"]
-        new_board._active_pid = data["active_pid"]
 
-        return new_board
+    def save(self, file: Union[str, Path]):
+        self._save_mod.save_state(file, self)
+
+    @classmethod
+    def load(cls, file: Union[str, Path], *, save_mod = _DEFAULT_SAVE_MOD) -> 'BoardState':
+        return cls._DEFAULT_SAVE_MOD.load_state(file, BoardState)
 
     def _update_moves(self, origin: Coords, dest: Coords):
         """method used to update the cached moves for the state upon creation"""
