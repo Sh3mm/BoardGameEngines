@@ -1,18 +1,24 @@
-from typing import List, Tuple, Set, Dict, Any
+from typing import List, Tuple, Set, Union, Type
+from pathlib import Path
 from copy import deepcopy
 from GameEngines.UltiTTT import Move
 from GameEngines.UltiTTT.repr import _repr
-from GameEngines._generic import AbsBoardState, cache_moves
+from GameEngines.UltiTTT.SaveModule import UltiTTTSave
+from GameEngines.abstract import AbsBoardState, AbsSaveModule
+from GameEngines.cache_utils import cache_moves, ignore_cache
 import numpy as np
 
 
 class BoardState(AbsBoardState):
-    def __init__(self):
+
+    _DEFAULT_SAVE_MOD = UltiTTTSave
+    def __init__(self, *, save_module: Type[AbsSaveModule] = _DEFAULT_SAVE_MOD):
         self._board = np.zeros((9, 9), dtype=np.int8)
         self._win_state = [0] * 9
         self._turn = 0
         self._active_cell = -1
-        self._active_pid = 1
+        self._curr_pid = 1
+        self._save_mod = save_module
 
     @property
     def turn(self) -> int:
@@ -20,7 +26,7 @@ class BoardState(AbsBoardState):
 
     @property
     def curr_pid(self) -> int:
-        return self._active_pid
+        return self._curr_pid
 
     @property
     def board(self) -> np.ndarray:
@@ -29,7 +35,8 @@ class BoardState(AbsBoardState):
     def __repr__(self):
         return _repr(self)
 
-    def copy(self) -> 'BoardState':
+    @ignore_cache
+    def copy(self, *, cache=False) -> 'BoardState':
         return deepcopy(self)
 
     def play(self, move: Move) -> 'AbsBoardState':
@@ -39,11 +46,11 @@ class BoardState(AbsBoardState):
         tile = 3 * move[0][0] + move[0][1]
         sub_tile = 3 * move[1][0] + move[1][1]
 
-        new_board._board[tile, sub_tile] = self._active_pid
+        new_board._board[tile, sub_tile] = self._curr_pid
         new_board._active_cell = sub_tile
 
         new_board._win_state[tile] = new_board._get_winner_of(new_board._board[tile])
-        new_board._active_pid = (self._active_pid % 2) + 1
+        new_board._curr_pid = (self._curr_pid % 2) + 1
 
         return new_board
 
@@ -75,15 +82,13 @@ class BoardState(AbsBoardState):
         if w == 2:
             return 0, 1
 
+    def save(self, file: Union[str, Path]):
+        self._save_mod.save_state(file, self)
+
     @classmethod
-    def _load_data(cls, data: Dict[str, Any]) -> 'BoardState':
-        new_board = BoardState()
-        new_board._board = data["board"]
-        new_board._win_state = data["win_state"]
-        new_board._turn = data["turn"]
-        new_board._active_cell = data["active_cell"]
-        new_board._active_pid = data["active_pid"]
-        return new_board
+    def load(cls, file: Union[str, Path], *, save_mod = _DEFAULT_SAVE_MOD) -> 'BoardState':
+        return cls._DEFAULT_SAVE_MOD.load_state(file, BoardState)
+
 
     @staticmethod
     def _get_winner_of(section: List[int]) -> int:

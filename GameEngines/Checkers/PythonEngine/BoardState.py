@@ -1,10 +1,13 @@
-from typing import Set, Iterator, Dict, Any
+from typing import Set, Iterator, Dict, Any, Type, Union
 from enum import Enum
 from copy import deepcopy
 import numpy as np
+from pathlib import Path
 
-from GameEngines._generic import AbsBoardState, cache_moves
+from GameEngines.abstract import AbsBoardState, AbsSaveModule
+from GameEngines.cache_utils import cache_moves, ignore_cache
 from GameEngines.Checkers.repr import _repr
+from GameEngines.Checkers.SaveModule import CheckersSave
 from GameEngines.Checkers.utilsTypes import *
 import GameEngines.Checkers.PythonEngine.utils as utils
 
@@ -19,11 +22,15 @@ class BoardState(AbsBoardState):
     Rules for the game can be found online
     """
 
-    def __init__(self):
+    _DEFAULT_SAVE_MOD = CheckersSave
+
+    def __init__(self, *, save_module: Type[AbsSaveModule] = _DEFAULT_SAVE_MOD):
         self._board = utils.board_setup()
         self._cached_moves = None
         self._turn = 0
         self._active_pid = 1
+
+        self._save_mod = save_module
 
     @property
     def turn(self) -> int:
@@ -40,7 +47,8 @@ class BoardState(AbsBoardState):
     def __repr__(self) -> str:
         return _repr(self)
 
-    def copy(self) -> 'BoardState':
+    @ignore_cache
+    def copy(self, *, cache=False) -> 'BoardState':
         return deepcopy(self)
 
     def play(self, global_move: Move) -> 'AbsBoardState':
@@ -107,6 +115,14 @@ class BoardState(AbsBoardState):
 
         return 1 if p1 > 0 else 2
 
+
+    def save(self, file: Union[str, Path]):
+        self._save_mod.save_state(file, self)
+
+    @classmethod
+    def load(cls, file: Union[str, Path], *, save_mod = _DEFAULT_SAVE_MOD) -> 'BoardState':
+        return cls._DEFAULT_SAVE_MOD.load_state(file, BoardState)
+
     @classmethod
     def _load_data(cls, data: Dict[str, Any]) -> 'BoardState':
         new_board = BoardState()
@@ -119,15 +135,15 @@ class BoardState(AbsBoardState):
     @staticmethod
     def _from_local(move: Move) -> Move:
         return (
-            (4 + move[0][0] - move[0][1], move[0][0] + move[0][1] - 3),  # x_res = (4 + x - y)
-            (4 + move[1][0] - move[1][1], move[1][0] + move[1][1] - 3)   # y_res = (x + y - 3)
+            (4 + int(move[0][0] - move[0][1]), int(move[0][0] + move[0][1]) - 3),  # x_res = (4 + x - y)
+            (4 + int(move[1][0] - move[1][1]), int(move[1][0] + move[1][1]) - 3)   # y_res = (x + y - 3)
         )
 
     @staticmethod
     def _to_local(move: Move) -> Move:
         return (
-            ((move[0][0] + move[0][1] - 1) // 2, (move[0][1] - move[0][0] + 7) // 2),  # x_res = (x + y - 1) // 2
-            ((move[1][0] + move[1][1] - 1) // 2, (move[1][1] - move[1][0] + 7) // 2)   # y_res = (y - x + 7) // 2
+            (int(move[0][0] + move[0][1] - 1) // 2, int(move[0][1] - move[0][0] + 7) // 2),  # x_res = (x + y - 1) // 2
+            (int(move[1][0] + move[1][1] - 1) // 2, int(move[1][1] - move[1][0] + 7) // 2)   # y_res = (y - x + 7) // 2
         )
 
     @staticmethod

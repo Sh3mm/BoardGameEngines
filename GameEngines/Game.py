@@ -1,7 +1,7 @@
 from typing import Type, List
 import time
 import math
-from GameEngines._generic import AbsBoardState, AbsPlayer
+from GameEngines.abstract import AbsBoardState, AbsPlayer
 
 
 class Game:

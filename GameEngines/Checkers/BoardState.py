@@ -1,6 +1,6 @@
 import GameEngines
 from GameEngines.Checkers.repr import _repr
-from GameEngines._generic import cache_moves
+from GameEngines.cache_utils import cache_moves, ignore_cache
 
 BoardState = GameEngines.Checkers.RawCheckersState
 
@@ -9,3 +9,4 @@ BoardState = GameEngines.Checkers.RawCheckersState
 BoardState.__repr__ = _repr
 
 BoardState.get_legal_moves = cache_moves(BoardState.get_legal_moves)
+BoardState.copy = ignore_cache(BoardState.copy)

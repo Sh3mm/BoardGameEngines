@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from GameEngines._generic import AbsBoardState
+from GameEngines.abstract import AbsBoardState
 from typing import TypeVar, Set
 
 T = TypeVar('T')
