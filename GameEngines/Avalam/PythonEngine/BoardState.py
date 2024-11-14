@@ -32,6 +32,14 @@ class BoardState(AbsBoardState):
 
         self._save_mod: AbsSaveModule = save_module()
 
+    def __eq__(self, other: 'BoardState') -> bool:
+        return (
+            np.array_equal(self._board, other._board) and
+            np.array_equal(self._ratios, other._ratios) and
+            self._turn == other._turn and
+            self._curr_pid == other._curr_pid
+        )
+
     @property
     def turn(self) -> int:
         return self._turn
@@ -55,7 +63,10 @@ class BoardState(AbsBoardState):
     def copy(self) -> 'BoardState':
         return deepcopy(self)
 
-    def play(self, move: Move) -> 'AbsBoardState':
+    def play(self, move: Move) -> 'BoardState':
+        if self._on_move_call is not None:
+            self._update_moves(*self._on_move_call)
+
         origin: Coords = move[0]
         dest: Coords = move[1]
 
@@ -65,7 +76,7 @@ class BoardState(AbsBoardState):
         top = new_board._board[origin]
         new_board._board[origin] = 0
         bottom = new_board._board[dest]
-        new_board._board[dest] = (int(top > 0) * 2 - 1) * abs(bottom) + top
+        new_board._board[dest] = np.sign(top) * abs(bottom) + top
 
         new_board._update_ratios(origin, dest)
 
@@ -93,7 +104,7 @@ class BoardState(AbsBoardState):
 
         p1, p2 = self.score()
         # tie
-        if p1 == p1:
+        if p1 == p2:
             return -1
         # winner
         return int(p1 < p2) + 1

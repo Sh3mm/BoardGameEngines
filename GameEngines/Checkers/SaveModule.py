@@ -29,7 +29,6 @@ class CheckersSave(AbsSaveModule):
     @staticmethod
     def save_state(file: Union[str, Path], state: AbsBoardState):
         data = CheckersSave._get_data(state)
-        print(data)
         Path(file).write_text(json.dumps(data))
 
     @staticmethod

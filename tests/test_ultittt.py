@@ -2,9 +2,7 @@ from GameEngines.UltiTTT import BoardState as RustBoardState
 from GameEngines.UltiTTT.PythonEngine import BoardState as PyBoardState
 
 import numpy as np
-from itertools import product
 import pytest
-from var_test import test_play_from_init_moves_ultittt
 
 rust_python = pytest.mark.parametrize(
     "board_state",
@@ -22,47 +20,52 @@ def test_init(board_state):
 
 
 @rust_python
-def test_play_from_init(board_state):
+def test_play_from_init_1(board_state):
     b = board_state()
+    moves = [
+        ((1, 1),(1, 1)), ((1, 1),(1, 2)), ((1, 2),(1, 1)), ((1, 1),(2, 2)), ((2, 2),(1, 1)), ((1, 1),(0, 2)),
+        ((0, 2),(1, 1))
+    ]
 
-    for i, j in product(range(3), range(3)):
-        if (i, j) == (1, 1):
-            continue
-        b.play(((1, 1), (i, j)))
+    for m in moves:
+        b = b.play(m)
 
-    b.play(((1, 1), (1, 1)))
+    ref_board = board_state.load("test_files/test_ultittt/from_init_board_1.json")
 
-    assert b.get_legal_moves() == test_play_from_init_moves_ultittt
+    assert b == ref_board
+    assert b.get_legal_moves() == ref_board.__move_cache
+    assert b.winner() == 0
 
+@rust_python
+def test_play_from_init_2(board_state):
+    b = board_state()
+    moves = [
+        ((0, 0),(0, 1)), ((0, 1),(0, 2)), ((0, 2),(1, 2)), ((1, 2),(2, 2)), ((2, 2),(2, 1)),
+        ((2, 1),(2, 0)), ((2, 0),(1, 0)), ((1, 0),(1, 1)), ((1, 1),(1, 1)),
+        ((1, 1),(0, 2)), ((0, 2),(1, 0)), ((1, 0),(2, 0)), ((2, 0),(2, 0)), ((2, 0),(1, 1)),
+        ((1, 1),(2, 2)), ((2, 2),(0, 2)), ((0, 2),(1, 1)), ((1, 1),(2, 0)), ((2, 0),(0, 0)),
+        ((0, 0),(1, 1)), ((1, 1),(0, 0))
+    ]
+
+    for m in moves:
+        b = b.play(m)
+
+    ref_board = board_state.load("test_files/test_ultittt/from_init_board_2.json")
+
+    assert b == ref_board
+    assert b.get_legal_moves() == ref_board.__move_cache
+    assert b.winner() == 1
 
 @rust_python
 def test_winner(board_state):
-    b: PyBoardState = board_state()
-
+    b = board_state()
     assert b.winner() == 0
 
-    set_win_cell = lambda x, y: (
-            b.play((x, (0, 0))) and
-            b.play((x, (0, 1))) and
-            b.play((x, (0, 2)))
-    )
+    ref_board = board_state.load("test_files/test_ultittt/winner_board_1.json")
+    assert ref_board.winner() == 2
 
-    #  1, -1, 1,
-    #  0, -1, 0,
-    #  0, -1, 0
+    ref_board = board_state.load("test_files/test_ultittt/winner_board_2.json")
+    assert ref_board.winner() == 1
 
-    set_win_cell((0, 0), 1)
-    set_win_cell((0, 1), -1)
-    set_win_cell((0, 2), 1)
-    set_win_cell((2, 1), -1)
-    set_win_cell((1, 1), -1)
-
-    assert b.winner() == 0
-
-    b: PyBoardState = board_state()
-
-    set_win_cell((0, 0), 1)
-    set_win_cell((0, 1), 1)
-    set_win_cell((0, 2), 1)
-
-    assert b.winner() == 0
+    ref_board = board_state.load("test_files/test_ultittt/winner_board_3.json")
+    assert ref_board.winner() == -1

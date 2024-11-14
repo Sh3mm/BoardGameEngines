@@ -1,11 +1,12 @@
 use std::cmp::min;
 use std::collections::{HashSet};
 use itertools::{iproduct};
-use ndarray::{Array2, Array3, s};
-use numpy::{PyArray2, PyArray3, ndarray::array};
+use ndarray::{Array2, Array3, s, array};
+use numpy::{PyArray2, PyArray3};
 use pyo3::{IntoPy, Py, pyclass, pymethods, Python, PyObject};
 use pyo3::prelude::PyModule;
 use pyo3::types::{PySet, PyType};
+use pyo3::class::basic::CompareOp;
 
 
 type Coords = (usize, usize);
@@ -120,6 +121,32 @@ impl RawAvalamState {
             }
         });
     }
+
+    fn __richcmp__(&self, other: &Self, op: CompareOp) -> PyObject {
+        Python::with_gil(|_py| {
+            return match op {
+                CompareOp::Eq => {
+                    let board_eq = std::iter::zip(
+                        self._board.as_ref(_py).to_owned_array(),
+                        other._board.as_ref(_py).to_owned_array()
+                    ).all(|(a, b)| a == b);
+
+                    let ratios_eq = std::iter::zip(
+                        self._ratios.as_ref(_py).to_owned_array(),
+                        other._ratios.as_ref(_py).to_owned_array()
+                    ).all(|(a, b)| a == b);
+
+                    let turn_eq = self._turn == other._turn;
+                    let curr_pid_eq = self._curr_pid == other._curr_pid;
+
+                    let res = board_eq && ratios_eq && turn_eq && curr_pid_eq;
+                    res.into_py(_py)
+                },
+                _ => { _py.NotImplemented() },
+            }
+        })
+    }
+
     /// copies and returns a python avalam State object
     fn copy(&self) -> Self{
         Python::with_gil(|_py| {
@@ -145,20 +172,26 @@ impl RawAvalamState {
     }
 
     /// play an action on the Avalam State and returns the following State object
-    fn play(&self, c_move: Move) -> Self{
-        let origin = c_move.0;
-        let dest = c_move.1;
-
-        let mut new_board = self.copy();
-        new_board._on_move_call = Some((origin, dest));
-        new_board._turn += 1;
-
+    fn play(&mut self, c_move: Move) -> Self{
         Python::with_gil(|_py| {
+
+            if let Some(m) = self._on_move_call {
+                self._update_move(_py, m.0, m.1);
+                self._on_move_call = None;
+            }
+
+            let origin = c_move.0;
+            let dest = c_move.1;
+
+            let mut new_board = self.copy();
+            new_board._on_move_call = Some((origin, dest));
+            new_board._turn += 1;
+
             // board Update
             let b_ref = new_board._board.as_ref(_py);
             let top = unsafe{ *b_ref.uget(origin) };
             let bottom = unsafe{ *b_ref.uget(dest) };
-            let final_val = if top >= 0 { top + bottom.abs() } else { top - bottom.abs() };
+            let final_val = top.signum() * bottom.abs() + top;
 
             b_ref.set_item(origin, 0).expect("Origin outside expected range");
             b_ref.set_item(dest, final_val).expect("Destination outside expected range");
@@ -176,10 +209,10 @@ impl RawAvalamState {
 
             r_ref.set_item((0, dest.0, dest.1), top_0 + bottom_0).expect("Destination outside expected range");
             r_ref.set_item((1, dest.0, dest.1), top_1 + bottom_1).expect("Destination outside expected range");
-        });
 
-        new_board._curr_pid = (self._curr_pid % 2) + 1;
-        return new_board;
+            new_board._curr_pid = (self._curr_pid % 2) + 1;
+            return new_board;
+        })
     }
 
     /// standard implementation of the `get_legal_moves` python method. it returns the legal
@@ -254,18 +287,18 @@ impl RawAvalamState {
         })
     }
 
-    fn save(&self, file: PyObject) {
+    fn save(slf: PyObject, file: PyObject) {
         Python::with_gil(|_py|{
-            let py_self = self.clone().into_py(_py);
-            self._save_mod.call_method(
-                _py, "save_state", (file, py_self), None
+            let save_mod = slf.getattr(_py, "_save_mod").unwrap();
+            save_mod.call_method(
+                _py, "save_state", (file, slf), None
             ).unwrap();
         })
     }
 
     #[staticmethod]
     #[pyo3(signature=(file, save_module=None))]
-    fn load(file: PyObject, save_module: Option<Py<PyType>>) -> Self {
+    fn load(file: PyObject, save_module: Option<Py<PyType>>) -> PyObject {
         let avalam_save: Py<PyType> = match save_module {
             None => { Self::default_save_mod()}
             Some(save_mod) => {save_mod}
@@ -274,7 +307,7 @@ impl RawAvalamState {
         Python::with_gil(|_py|{
             avalam_save.call_method(
                 _py, "load_state",  (file, _py.get_type::<Self>()), None
-            ).unwrap().extract(_py).unwrap()
+            ).unwrap()
         })
     }
 

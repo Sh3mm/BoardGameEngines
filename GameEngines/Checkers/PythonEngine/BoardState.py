@@ -28,9 +28,21 @@ class BoardState(AbsBoardState):
         self._board = utils.board_setup()
         self._cached_moves = None
         self._turn = 0
-        self._active_pid = 1
+        self._curr_pid = 1
 
         self._save_mod = save_module
+
+    def __eq__(self, other: 'BoardState') -> bool:
+        return (
+                np.array_equal(
+                    self._board[~np.isnan(self._board)],
+                    other._board[~np.isnan(other._board)]
+                ) and
+                self._cached_moves == other._cached_moves and
+                self._turn == other._turn and
+                self._curr_pid == other._curr_pid
+        )
+
 
     @property
     def turn(self) -> int:
@@ -38,7 +50,7 @@ class BoardState(AbsBoardState):
 
     @property
     def curr_pid(self) -> int:
-        return self._active_pid
+        return self._curr_pid
 
     @property
     def board(self) -> np.ndarray:
@@ -51,7 +63,7 @@ class BoardState(AbsBoardState):
     def copy(self, *, cache=False) -> 'BoardState':
         return deepcopy(self)
 
-    def play(self, global_move: Move) -> 'AbsBoardState':
+    def play(self, global_move: Move) -> 'BoardState':
         new_state = self.copy()
         move = self._to_local(global_move)
 
@@ -63,7 +75,7 @@ class BoardState(AbsBoardState):
         new_state._board[move[1]] = beg_val
 
         # change from 1 -> 2 on the end row
-        if [global_move[1][0] == 0, global_move[1][0] == 7][self._active_pid % 2]:
+        if [global_move[1][0] == 0, global_move[1][0] == 7][self._curr_pid % 2]:
             if abs(beg_val) == PieceType.Single.value:
                 new_state._board[move[1]] *= 2
 
@@ -77,7 +89,7 @@ class BoardState(AbsBoardState):
                 return new_state
 
         new_state._cached_moves = None
-        new_state._active_pid = (self._active_pid % 2) + 1
+        new_state._curr_pid = (self._curr_pid % 2) + 1
         return new_state
 
     @cache_moves
@@ -85,7 +97,7 @@ class BoardState(AbsBoardState):
         if self._cached_moves is not None:
             return self._cached_moves.copy()
 
-        pieces = self._board > 0 if self._active_pid == 1 else self._board < 0
+        pieces = self._board > 0 if self._curr_pid == 1 else self._board < 0
         coords: Iterator[Coords] = zip(*pieces.nonzero())
 
         moves = []
@@ -110,10 +122,13 @@ class BoardState(AbsBoardState):
     def winner(self) -> int:
         p1, p2 = self.score()
 
-        if p1 > 0 and p2 > 0:
-            return 0
+        if p1 <= 0 or p2 <= 0:
+            return 1 if p1 > 0 else 2
 
-        return 1 if p1 > 0 else 2
+        if not self._has_moves():
+            return (self._curr_pid % 2) + 1
+
+        return 0
 
 
     def save(self, file: Union[str, Path]):
@@ -123,14 +138,17 @@ class BoardState(AbsBoardState):
     def load(cls, file: Union[str, Path], *, save_mod = _DEFAULT_SAVE_MOD) -> 'BoardState':
         return cls._DEFAULT_SAVE_MOD.load_state(file, BoardState)
 
-    @classmethod
-    def _load_data(cls, data: Dict[str, Any]) -> 'BoardState':
-        new_board = BoardState()
-        new_board._board = data["board"]
-        new_board._cached_moves = data["cached_moves"]
-        new_board._turn = data["turn"]
-        new_board._active_pid = data["active_pid"]
-        return new_board
+
+    def _has_moves(self) -> bool:
+        pieces = self._board > 0 if self._curr_pid == 1 else self._board < 0
+        coords: Iterator[Coords] = zip(*pieces.nonzero())
+
+        for coord in coords:
+            moves, _ = self._get_moves(self._board, coord, False)
+            if len(moves) > 0:
+                return True
+        return False
+
 
     @staticmethod
     def _from_local(move: Move) -> Move:

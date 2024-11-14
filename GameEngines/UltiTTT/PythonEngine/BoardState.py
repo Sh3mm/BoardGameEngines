@@ -18,7 +18,17 @@ class BoardState(AbsBoardState):
         self._turn = 0
         self._active_cell = -1
         self._curr_pid = 1
+
         self._save_mod = save_module
+
+    def __eq__(self, other: 'BoardState') -> bool:
+        return (
+            np.array_equal(self._board, other._board) and
+            self._win_state == other._win_state and
+            self._turn == other._turn and
+            self._active_cell == other._active_cell and
+            self._curr_pid == other._curr_pid
+        )
 
     @property
     def turn(self) -> int:
@@ -39,7 +49,7 @@ class BoardState(AbsBoardState):
     def copy(self, *, cache=False) -> 'BoardState':
         return deepcopy(self)
 
-    def play(self, move: Move) -> 'AbsBoardState':
+    def play(self, move: Move) -> 'BoardState':
         new_board = self.copy()
         new_board._turn += 1
 
@@ -47,7 +57,7 @@ class BoardState(AbsBoardState):
         sub_tile = 3 * move[1][0] + move[1][1]
 
         new_board._board[tile, sub_tile] = self._curr_pid
-        new_board._active_cell = sub_tile
+        new_board._active_cell = sub_tile if self._win_state[sub_tile] == 0 else -1
 
         new_board._win_state[tile] = new_board._get_winner_of(new_board._board[tile])
         new_board._curr_pid = (self._curr_pid % 2) + 1
@@ -57,7 +67,7 @@ class BoardState(AbsBoardState):
     @cache_moves
     def get_legal_moves(self, *, cache=False) -> Set[Move]:
         # if fist move or the active cell is full and any move can be taken
-        if self._active_cell == -1 or self._win_state[self._active_cell] != 0:
+        if self._active_cell == -1:
             return {
                 ((i // 3, i % 3), (j // 3, j % 3))
                 for i, j in zip(*np.where(self._board == 0))
