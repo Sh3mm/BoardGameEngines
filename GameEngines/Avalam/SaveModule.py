@@ -26,6 +26,7 @@ class AvalamSave(AbsSaveModule):
         data["board"] = np.array(data["board"]).reshape((9, 9))
         data["ratios"] = np.array(data["ratios"]).reshape((2, 9, 9))
         data["move_cache"] = set((tuple(i[0]), tuple(i[1])) for i in data["move_cache"])
+        data["on_move_call"] = (tuple(data["on_move_call"][0]), tuple(data["on_move_call"][1]))
 
         return AvalamSave._put_data(data, state_type)
 
@@ -53,7 +54,7 @@ class AvalamSave(AbsSaveModule):
 
         state._board = data["board"]
         state._ratios = data["ratios"]
-        state._move_cache = data["move_cache"]
+        state._moves = data["move_cache"]
         state._on_move_call = data["on_move_call"]
         state._turn = data["turn"]
         state._curr_pid = data["curr_pid"]

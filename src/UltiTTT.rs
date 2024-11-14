@@ -3,6 +3,7 @@ use itertools::{Itertools};
 use numpy::{PyArray2};
 use ndarray::{Array2};
 use pyo3::{IntoPy, Py, pyclass, pymethods, PyObject, Python};
+use pyo3::basic::CompareOp;
 use pyo3::types::{PyType};
 
 type Coords = (usize, usize);
@@ -143,18 +144,18 @@ impl RawUltiTTTState {
         return get_winner_of(self._win_state.iter())
     }
 
-    fn save(&self, file: PyObject) {
+    fn save(slf: PyObject, file: PyObject) {
         Python::with_gil(|_py|{
-            let py_self = self.clone().into_py(_py);
-            self._save_mod.call_method(
-                _py, "save_state", (file, py_self), None
+            let save_mod = slf.getattr(_py, "_save_mod").unwrap();
+            save_mod.call_method(
+                _py, "save_state", (file, slf), None
             ).unwrap();
         })
     }
 
     #[staticmethod]
     #[pyo3(signature=(file, save_module=None))]
-    fn load(file: PyObject, save_module: Option<Py<PyType>>) -> Self {
+    fn load(file: PyObject, save_module: Option<Py<PyType>>) -> PyObject {
         let avalam_save: Py<PyType> = match save_module {
             None => { Self::default_save_mod()}
             Some(save_mod) => {save_mod}
@@ -163,7 +164,7 @@ impl RawUltiTTTState {
         Python::with_gil(|_py|{
             avalam_save.call_method(
                 _py, "load_state", (file, _py.get_type::<Self>()), None
-            ).unwrap().extract(_py).unwrap()
+            ).unwrap()
         })
     }
 
@@ -175,6 +176,28 @@ impl RawUltiTTTState {
 
     #[getter]
     fn board(&self) -> &Py<PyArray2<i64>> { return &self._board }
+
+    fn __richcmp__(&self, other: &Self, op: CompareOp) -> PyObject {
+        Python::with_gil(|_py| {
+            return match op {
+                CompareOp::Eq => {
+                    let board_eq = std::iter::zip(
+                        self._board.as_ref(_py).to_owned_array(),
+                        other._board.as_ref(_py).to_owned_array()
+                    ).all(|(a, b)| a == b);
+
+                    let turn_eq = self._turn == other._turn;
+                    let curr_pid_eq = self._curr_pid == other._curr_pid;
+                    let active_cell_eq = self._active_cell == other._active_cell;
+                    let win_state_eq = self._win_state == other._win_state;
+
+                    let res = board_eq && active_cell_eq && turn_eq && curr_pid_eq && win_state_eq;
+                    res.into_py(_py)
+                },
+                _ => { _py.NotImplemented() },
+            }
+        })
+    }
 }
 
 ///

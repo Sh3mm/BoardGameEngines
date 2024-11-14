@@ -10,7 +10,11 @@ class AbsBoardState(ABC):
     It defines all necessary methods for a player to play a move
     """
     @abstractmethod
-    def __init__(self, *, save: Type['AbsSaveModule'] = None): ...
+    def __init__(self, *, save_module: Type['AbsSaveModule'] = None): ...
+
+
+    @abstractmethod
+    def __eq__(self, other: 'AbsSaveModule') -> bool: ...
 
     @property
     @abstractmethod

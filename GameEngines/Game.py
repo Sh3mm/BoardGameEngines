@@ -1,4 +1,4 @@
-from typing import Type, List
+from typing import Type, List, Any
 import time
 import math
 from GameEngines.abstract import AbsBoardState, AbsPlayer
@@ -14,10 +14,22 @@ class Game:
 
         self.board_class = board_class
         self.history: List[AbsBoardState] = [board_class()]
-        self._turn_history: List[int] = [1]
+        self.move_history: List[Any] = []
         self.time_data: List[float] = []
 
         self.winner = 0
+
+    def __repr__(self) -> str:
+        last_move = self.move_history[-1] if len(self.move_history) > 0 else '-'
+        last_move_str = f"\nLast move: {last_move}"
+
+        player_text = (
+            f"\nWinner: {self.winner}\n"
+            if self.winner != 0 else
+            f"\nNext player: {self.history[-1].curr_pid}"
+        )
+
+        return self.history[-1].__repr__() + last_move_str + player_text
 
     def play_full(self):
         """
@@ -34,20 +46,20 @@ class Game:
         :param n: the number of turns to be played
         """
         played = 0
-        p_nb = self._turn_history[-1]
         while self.winner == 0 and played < n:
+            p_nb = self.history[-1].curr_pid
             player = self.players[p_nb - 1]
             moves = self.history[-1].get_legal_moves()
 
             beg = time.time()
-            res = player.play(self.history[-1], moves, p_nb)
+            move = player.play(self.history[-1], moves, p_nb)
             self.time_data.append(time.time() - beg)
 
-            next_step = self.history[-1].play(res)
-            p_nb = next_step.curr_pid
+            next_step = self.history[-1].play(move)
 
+            self.move_history.append(move)
             self.history.append(next_step)
-            self._turn_history.append(p_nb)
+
             self.winner = self.history[-1].winner()
             played += 1
 
@@ -65,17 +77,3 @@ class Game:
         new_game.winner = self.winner
 
         return new_game
-
-    def show_state(self):
-        """
-        This method prints the current state of the game
-        """
-        points = self.history[-1].score()
-        if self.winner == -1:
-            print(f'Tied: {points}')
-        elif self.winner != 0:
-            print(f'winner is: player-{self.winner} {points}')
-        else:
-            print('Game is ongoing')
-        print(f'played turns: {self.history[-1].turn}')
-        print(f'Board:\n{self.history[-1]}')

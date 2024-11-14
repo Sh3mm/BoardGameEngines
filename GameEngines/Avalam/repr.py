@@ -11,7 +11,8 @@ __VOIDS = [
 def _repr(self):
     board = self.board
 
-    line_acc = []
+    index = '  ' + ' '.join(str(i) for i in range(9))
+    line_acc = [index]
     for i in range(9):
         val_acc = []
         for j in range(9):
@@ -28,6 +29,6 @@ def _repr(self):
                 val_acc.append('-')
             else:
                 val_acc.append(fr'{Fore.LIGHTRED_EX}{val}{Fore.RESET}')
-        line_acc.append(' '.join(val_acc))
+        line_acc.append(f'{i} ' + ' '.join(val_acc))
     return '\n'.join(line_acc)
 
