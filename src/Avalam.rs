@@ -247,7 +247,7 @@ impl RawAvalamState {
         }
     }
 
-    /// returns the current score of the State in the case of Avalam, this means the number of
+    /// returns the current score of the State. In the case of Avalam, this means the number of
     /// towers controlled by each player
     fn score(&self) -> (usize, usize){
         Python::with_gil(|_py| {

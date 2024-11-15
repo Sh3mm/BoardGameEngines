@@ -5,8 +5,11 @@ extern crate numpy;
 extern crate itertools;
 mod Avalam;
 mod UltiTTT;
+mod Checkers;
+
 use pyo3::{pymodule, types::PyModule, PyResult, Python};
 use crate::Avalam::{RawAvalamState};
+use crate::Checkers::{RawCheckersState};
 use crate::UltiTTT::{RawUltiTTTState};
 
 /// The rust implementation of engines for multiple games
@@ -15,6 +18,7 @@ use crate::UltiTTT::{RawUltiTTTState};
 fn RustEngine(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_submodule(Avalam(_py)?)?;
     m.add_submodule(UltiTTT(_py)?)?;
+    m.add_submodule(Checkers(_py)?)?;
     Ok(())
 }
 
@@ -30,4 +34,11 @@ fn UltiTTT(_py: Python<'_>) -> PyResult<&PyModule> {
     let ultiTTT_module = PyModule::new(_py, "UltiTTT")?;
     ultiTTT_module.add_class::<RawUltiTTTState>()?;
     return Ok(ultiTTT_module)
+}
+
+/// The rust implementation of a Checkers engine
+fn Checkers(_py: Python<'_>) -> PyResult<&PyModule> {
+    let checkers_module = PyModule::new(_py, "Checkers")?;
+    checkers_module.add_class::<RawCheckersState>()?;
+    return Ok(checkers_module)
 }
