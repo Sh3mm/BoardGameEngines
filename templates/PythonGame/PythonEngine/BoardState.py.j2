@@ -1,0 +1,66 @@
+from typing import List, Tuple, Set, Union, Type
+from pathlib import Path
+from copy import deepcopy
+from GameEngines.{{ GameName }} import Move
+from GameEngines.{{ GameName }}.repr import _repr
+from GameEngines.{{ GameName }}.SaveModule import {{ GameName }}Save
+from GameEngines.abstract import AbsBoardState, AbsSaveModule
+from GameEngines.cache_utils import cache_moves, ignore_cache
+import numpy as np
+
+
+class BoardState(AbsBoardState):
+
+    _DEFAULT_SAVE_MOD = {{ GameName }}Save
+    def __init__(self, *, save_module: Type[AbsSaveModule] = _DEFAULT_SAVE_MOD):
+        self._board = None # todo
+        self._turn = 0
+        self._curr_pid = 1
+
+        self._save_mod = save_module
+
+    def __eq__(self, other: 'BoardState') -> bool:
+        return (
+            # todo
+        )
+
+    @property
+    def turn(self) -> int:
+        return self._turn
+
+    @property
+    def curr_pid(self) -> int:
+        return self._curr_pid
+
+    @property
+    def board(self) -> None:
+        return # todo
+
+    def __repr__(self):
+        return _repr(self)
+
+    @ignore_cache
+    def copy(self, *, cache=False) -> 'BoardState':
+        return deepcopy(self)
+
+    def play(self, move: Move) -> 'BoardState':
+        new_board = self.copy()
+        # todo
+        return new_board
+
+    @cache_moves
+    def get_legal_moves(self, *, cache=False) -> Set[Move]:
+        ... # todo
+
+    def winner(self) -> int:
+        ... #todo
+
+    def score(self) -> Tuple[int, int]:
+        ... # todo
+
+    def save(self, file: Union[str, Path]):
+        self._save_mod.save_state(file, self)
+
+    @classmethod
+    def load(cls, file: Union[str, Path], *, save_mod = _DEFAULT_SAVE_MOD) -> 'BoardState':
+        return cls._DEFAULT_SAVE_MOD.load_state(file, BoardState)

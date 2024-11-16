@@ -1,0 +1,41 @@
+from pathlib import Path
+import json
+import numpy as np
+from typing import Union, Type, Dict, Any
+from GameEngines.abstract import AbsBoardState, AbsSaveModule
+from GameEngines import cache_utils
+from GameEngines.{{ GameName }}.utilsTypes import to_move
+
+
+class {{ GameName }}Save(AbsSaveModule):
+    """ Json File Template
+    {
+        board: Any,         // todo
+        turn: int,          // The current turn
+        curr_pid: int       // The active player
+    }
+    """
+    @staticmethod
+    def load_state(file: Union[str, Path], state_type: Type[AbsBoardState]) -> AbsBoardState:
+        ... # todo
+
+    @staticmethod
+    def save_state(file: Union[str, Path], state: AbsBoardState):
+        data = {{ GameName }}Save._get_data(state)
+        Path(file).write_text(json.dumps(data))
+
+    @staticmethod
+    @cache_utils.get_cache
+    def _get_data(state: AbsBoardState) -> Dict[str, Any]:
+        return {
+            # todo
+        }
+
+    @staticmethod
+    @cache_utils.put_cache(to_move)
+    def _put_data(data: Dict[str, Any], state_type: Type[AbsBoardState]) -> AbsBoardState:
+        state = state_type()
+
+        # todo
+
+        return state

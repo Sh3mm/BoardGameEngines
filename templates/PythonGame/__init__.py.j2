@@ -1,0 +1,14 @@
+import GameEngines
+from GameEngines.{{ GameName }} import *
+
+from .utilsTypes import Move
+
+try:
+    __doc__ = GameEngines.{{ GameName }}.__doc__
+    if hasattr(GameEngines.{{ GameName }}, "__all__"):
+        __all__ = GameEngines.{{ GameName }}.__all__
+
+    from .BoardState import BoardState
+
+except AttributeError:
+    from .PythonEngine.BoardState import BoardState
