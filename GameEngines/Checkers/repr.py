@@ -9,7 +9,7 @@ def _repr(self):
     line_acc = [index]
     for i in range(8):
         line = board.diagonal(4-i)
-        line = line[~np.isnan(line)]
+        line = line[line != 3]
         val_acc = []
         for v in line:
             if v > 0:
