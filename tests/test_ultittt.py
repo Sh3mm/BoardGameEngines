@@ -57,6 +57,21 @@ def test_play_from_init_2(board_state):
     assert b.winner() == 1
 
 @rust_python
+def complete_to_same(board_state):
+    b = board_state()
+    moves = [
+        ((1, 1),(0, 0)), ((0, 0), (1, 1)), ((1, 1),(2, 2)), ((2, 2), (1, 1)), ((1, 1),(1, 1))
+    ]
+
+    for m in moves:
+        b = b.play(m)
+
+    ref_board = board_state.load("test_files/test_ultittt/complete_to_same_1.json")
+
+    assert b == ref_board
+    assert b.get_legal_moves() == ref_board.__move_cache
+    assert b.winner() == 1
+@rust_python
 def test_winner(board_state):
     b = board_state()
     assert b.winner() == 0

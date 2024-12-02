@@ -35,8 +35,8 @@ class BoardState(AbsBoardState):
     def __eq__(self, other: 'BoardState') -> bool:
         return (
                 np.array_equal(
-                    self._board[~np.isnan(self._board)],
-                    other._board[~np.isnan(other._board)]
+                    self._board[self._board != 3],
+                    other._board[other._board != 3]
                 ) and
                 self._cached_moves == other._cached_moves and
                 self._turn == other._turn and
@@ -65,6 +65,8 @@ class BoardState(AbsBoardState):
 
     def play(self, global_move: Move) -> 'BoardState':
         new_state = self.copy()
+        new_state._turn += 1
+
         move = self._to_local(global_move)
 
         # move the pawn and remove whatever is in its path
@@ -75,7 +77,7 @@ class BoardState(AbsBoardState):
         new_state._board[move[1]] = beg_val
 
         # change from 1 -> 2 on the end row
-        if [global_move[1][0] == 0, global_move[1][0] == 7][self._curr_pid % 2]:
+        if global_move[1][0] == [0, 7][self._curr_pid % 2]:
             if abs(beg_val) == PieceType.Single.value:
                 new_state._board[move[1]] *= 2
 
@@ -83,9 +85,9 @@ class BoardState(AbsBoardState):
         is_capture = (xs[1] - xs[0] + ys[1] - ys[0]) > 1
         if is_capture:
             # If multi jump available, cache them for next step
-            check = new_state._get_moves(new_state._board, move[1])
-            if check[1]:
-                new_state._cached_moves = set(self._from_local((move[1], d)) for d in check[0])
+            moves, _ = new_state._get_moves(new_state._board, move[1], True)
+            if len(moves) > 0:
+                new_state._cached_moves = set(self._from_local((move[1], d)) for d in moves)
                 return new_state
 
         new_state._cached_moves = None
@@ -97,7 +99,7 @@ class BoardState(AbsBoardState):
         if self._cached_moves is not None:
             return self._cached_moves.copy()
 
-        pieces = self._board > 0 if self._curr_pid == 1 else self._board < 0
+        pieces = (self._board > 0 if self._curr_pid == 1 else self._board < 0) & (self._board < 3)
         coords: Iterator[Coords] = zip(*pieces.nonzero())
 
         moves = []
@@ -115,7 +117,7 @@ class BoardState(AbsBoardState):
 
     def score(self) -> Tuple[int, int]:
         return (
-            np.sum(self._board > 0),
+            np.sum((self._board > 0) & (self._board < 3)),
             np.sum(self._board < 0)
         )
 
@@ -140,7 +142,7 @@ class BoardState(AbsBoardState):
 
 
     def _has_moves(self) -> bool:
-        pieces = self._board > 0 if self._curr_pid == 1 else self._board < 0
+        pieces = (self._board > 0 if self._curr_pid == 1 else self._board < 0) & (self._board < 3)
         coords: Iterator[Coords] = zip(*pieces.nonzero())
 
         for coord in coords:
@@ -194,27 +196,3 @@ class BoardState(AbsBoardState):
             return captures, True
         else:
             return [(pos[0] + c[0], pos[1] + c[1]) for c, d in directions if d[0] == 0], False
-
-
-if __name__ == '__main__':
-    b = BoardState()
-    b.board[~np.isnan(b.board)] = 0
-    b.board[(0, 3)] = 1
-    b.board[(3, 7)] = 1
-    b.board[(1, 3)] = -1
-    b.board[(2, 2)] = -2
-    b.board[(3, 6)] = -1
-    print(b)
-    m = b.get_legal_moves(1)
-    print(m)
-    b, p = b.play(m.pop(), 1)
-    print(p)
-    print(b)
-    m = b.get_legal_moves(p)
-    print(m)
-    b, p = b.play(m.pop(), 1)
-    print(p)
-    print(b)
-    m = b.get_legal_moves(p)
-    print(m)
-    print(b.board)

@@ -108,8 +108,7 @@ impl RawUltiTTTState {
     }
 
     /// standard implementation of the `get_legal_moves` python method. it returns the legal
-    /// actions the specified player can take. In the case of the UltiTTT game, both players can
-    /// play the same set of moves
+    /// actions the specified player can take.
     fn get_legal_moves(&self) -> PyObject {
         Python::with_gil(|_py| {
             let board = unsafe { self._board.as_ref(_py).as_array() };
@@ -127,8 +126,8 @@ impl RawUltiTTTState {
         })
     }
 
-    /// returns the current score of the State in the case of Avalam, this means the number of
-    /// towers controlled by each player
+    /// returns the current score of the State. In the case of UltiTTT, this means the number of
+    /// won sub-boards
     fn score(&self) -> (usize, usize) {
         return (0, 0)
     }
