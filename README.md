@@ -9,7 +9,7 @@ Games are implemented in both native python for use on all platforms and Rust fo
 ## Available games
 
 - [Ultimate Tic-Tac-Toe](https://en.wikipedia.org/wiki/Ultimate_tic-tac-toe)
-- [Checkers](https://en.wikipedia.org/wiki/Checkers) [❌ Rust]
+- [Checkers](https://en.wikipedia.org/wiki/Checkers)
 - [Avalam](https://www.elo-games.com/en/games/967540-avalam) 
 
 ## Planned games
