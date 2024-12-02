@@ -57,9 +57,10 @@ class BoardState(AbsBoardState):
         sub_tile = 3 * move[1][0] + move[1][1]
 
         new_board._board[tile, sub_tile] = self._curr_pid
-        new_board._active_cell = sub_tile if self._win_state[sub_tile] == 0 else -1
 
         new_board._win_state[tile] = new_board._get_winner_of(new_board._board[tile])
+        new_board._active_cell = sub_tile if new_board._win_state[sub_tile] == 0 else -1
+
         new_board._curr_pid = (self._curr_pid % 2) + 1
 
         return new_board
@@ -110,7 +111,7 @@ class BoardState(AbsBoardState):
 
         for line in diags + rows + cols:
             if (0 not in line) and (-1 not in line) and len(set(line)) == 1:
-                return line[0]
+                return int(line[0])
 
         # tie
         if 0 not in section:
