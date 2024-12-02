@@ -16,6 +16,7 @@ Games are implemented in both native python for use on all platforms and Rust fo
 - [Chess](https://en.wikipedia.org/wiki/Chess)
 - [Quoridor](https://en.wikipedia.org/wiki/Quoridor)
 - [Go](https://en.wikipedia.org/wiki/Go_(game))
+- [Backgammon](https://en.wikipedia.org/wiki/Backgammon)
 
 ## Usage
 The Library provide the engines in the form of a `BoardState` class for each game and a generic `Game` class. 
