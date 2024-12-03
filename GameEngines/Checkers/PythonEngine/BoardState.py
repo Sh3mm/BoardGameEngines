@@ -1,11 +1,9 @@
-from typing import Set, Iterator, Dict, Any, Type, Union
+from typing import Set, Iterator, Type
 from enum import Enum
-from copy import deepcopy
 import numpy as np
-from pathlib import Path
 
-from GameEngines.abstract import AbsBoardState, AbsSaveModule
-from GameEngines.cache_utils import cache_moves, ignore_cache
+from GameEngines import BaseBoardState, AbsSaveModule
+from GameEngines.cache_utils import cache_moves
 from GameEngines.Checkers.repr import _repr
 from GameEngines.Checkers.SaveModule import CheckersSave
 from GameEngines.Checkers.utilsTypes import *
@@ -16,7 +14,7 @@ class PieceType(Enum):
     King = 2,
 
 
-class BoardState(AbsBoardState):
+class BoardState(BaseBoardState):
     """
     This class is the Python implementation of BoardState for the `Checkers` game.
     Rules for the game can be found online
@@ -25,12 +23,10 @@ class BoardState(AbsBoardState):
     _DEFAULT_SAVE_MOD = CheckersSave
 
     def __init__(self, *, save_module: Type[AbsSaveModule] = _DEFAULT_SAVE_MOD):
-        self._board = utils.board_setup()
-        self._cached_moves = None
-        self._turn = 0
-        self._curr_pid = 1
+        super().__init__(save_module=save_module)
 
-        self._save_mod = save_module
+        self._board = utils.board_setup()
+        self._cached_moves = None # The moves cached on a multi jump move
 
     def __eq__(self, other: 'BoardState') -> bool:
         return (
@@ -43,25 +39,12 @@ class BoardState(AbsBoardState):
                 self._curr_pid == other._curr_pid
         )
 
-
-    @property
-    def turn(self) -> int:
-        return self._turn
-
-    @property
-    def curr_pid(self) -> int:
-        return self._curr_pid
-
     @property
     def board(self) -> np.ndarray:
         return self._board
 
     def __repr__(self) -> str:
         return _repr(self)
-
-    @ignore_cache
-    def copy(self, *, cache=False) -> 'BoardState':
-        return deepcopy(self)
 
     def play(self, global_move: Move) -> 'BoardState':
         new_state = self.copy()
@@ -131,15 +114,6 @@ class BoardState(AbsBoardState):
             return (self._curr_pid % 2) + 1
 
         return 0
-
-
-    def save(self, file: Union[str, Path]):
-        self._save_mod.save_state(file, self)
-
-    @classmethod
-    def load(cls, file: Union[str, Path], *, save_mod = _DEFAULT_SAVE_MOD) -> 'BoardState':
-        return cls._DEFAULT_SAVE_MOD.load_state(file, BoardState)
-
 
     def _has_moves(self) -> bool:
         pieces = (self._board > 0 if self._curr_pid == 1 else self._board < 0) & (self._board < 3)
