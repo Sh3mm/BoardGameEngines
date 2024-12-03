@@ -1,11 +1,9 @@
-from pathlib import Path
-
-import numpy as np
-from copy import deepcopy
-from typing import Set, Type, Optional, Union
+from typing import Set, Type, Optional
 from itertools import product
-from GameEngines.abstract import AbsBoardState, AbsSaveModule
-from GameEngines.cache_utils import cache_moves, ignore_cache
+import numpy as np
+
+from GameEngines import BaseBoardState, AbsSaveModule
+from GameEngines.cache_utils import cache_moves
 
 from GameEngines.Avalam.repr import _repr
 from GameEngines.Avalam.SaveModule import AvalamSave
@@ -13,7 +11,7 @@ import GameEngines.Avalam.PythonEngine.utils as utils
 from GameEngines.Avalam.utilsTypes import *
 
 
-class BoardState(AbsBoardState):
+class BoardState(BaseBoardState):
     """
     This class is the Python implementation of BoardState for the `Avalam` game.
     Rules for the game can be found online
@@ -23,14 +21,12 @@ class BoardState(AbsBoardState):
     _DEFAULT_SAVE_MOD = AvalamSave
 
     def __init__(self, *, save_module: Type[AbsSaveModule] = _DEFAULT_SAVE_MOD):
-        self._board: np.ndarray = self.INIT_INFO[0]
-        self._ratios: np.ndarray = self.INIT_INFO[1]
-        self._moves: Set[Move] = self.INIT_MOVES
-        self._on_move_call: Optional[Move] = None
-        self._turn: int = 0
-        self._curr_pid: int = 1
+        super().__init__(save_module=save_module)
 
-        self._save_mod: AbsSaveModule = save_module()
+        self._board: np.ndarray = self.INIT_INFO[0]
+        self._ratios: np.ndarray = self.INIT_INFO[1] # Table of the ratios of each piece type in towers
+        self._moves: Set[Move] = self.INIT_MOVES # The current moves updated when _update_moves is called
+        self._on_move_call: Optional[Move] = None # Last move kept to update the _moves
 
     def __eq__(self, other: 'BoardState') -> bool:
         return (
@@ -39,14 +35,6 @@ class BoardState(AbsBoardState):
             self._turn == other._turn and
             self._curr_pid == other._curr_pid
         )
-
-    @property
-    def turn(self) -> int:
-        return self._turn
-
-    @property
-    def curr_pid(self) -> int:
-        return self._curr_pid
 
     @property
     def board(self) -> np.ndarray:
@@ -58,10 +46,6 @@ class BoardState(AbsBoardState):
 
     def __repr__(self) -> str:
         return _repr(self)
-
-    @ignore_cache
-    def copy(self) -> 'BoardState':
-        return deepcopy(self)
 
     def play(self, move: Move) -> 'BoardState':
         if self._on_move_call is not None:
@@ -108,14 +92,6 @@ class BoardState(AbsBoardState):
             return -1
         # winner
         return int(p1 < p2) + 1
-
-
-    def save(self, file: Union[str, Path]):
-        self._save_mod.save_state(file, self)
-
-    @classmethod
-    def load(cls, file: Union[str, Path], *, save_mod = _DEFAULT_SAVE_MOD) -> 'BoardState':
-        return cls._DEFAULT_SAVE_MOD.load_state(file, BoardState)
 
     def _update_moves(self, origin: Coords, dest: Coords):
         """method used to update the cached moves for the state upon creation"""

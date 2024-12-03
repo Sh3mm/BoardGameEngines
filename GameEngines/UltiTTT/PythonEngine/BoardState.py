@@ -1,25 +1,21 @@
-from typing import List, Tuple, Set, Union, Type
-from pathlib import Path
-from copy import deepcopy
+from typing import List, Tuple, Set, Type
+from GameEngines import BaseBoardState, AbsSaveModule
 from GameEngines.UltiTTT import Move
 from GameEngines.UltiTTT.repr import _repr
 from GameEngines.UltiTTT.SaveModule import UltiTTTSave
-from GameEngines.abstract import AbsBoardState, AbsSaveModule
-from GameEngines.cache_utils import cache_moves, ignore_cache
+from GameEngines.cache_utils import cache_moves
 import numpy as np
 
 
-class BoardState(AbsBoardState):
+class BoardState(BaseBoardState):
 
     _DEFAULT_SAVE_MOD = UltiTTTSave
     def __init__(self, *, save_module: Type[AbsSaveModule] = _DEFAULT_SAVE_MOD):
-        self._board = np.zeros((9, 9), dtype=np.int8)
-        self._win_state = [0] * 9
-        self._turn = 0
-        self._active_cell = -1
-        self._curr_pid = 1
+        super().__init__(save_module=save_module)
 
-        self._save_mod = save_module
+        self._board = np.zeros((9, 9), dtype=np.int8)
+        self._win_state = [0] * 9 # The top level tic-tac-toe game
+        self._active_cell = -1 # The active cell in the top level game
 
     def __eq__(self, other: 'BoardState') -> bool:
         return (
@@ -31,23 +27,11 @@ class BoardState(AbsBoardState):
         )
 
     @property
-    def turn(self) -> int:
-        return self._turn
-
-    @property
-    def curr_pid(self) -> int:
-        return self._curr_pid
-
-    @property
     def board(self) -> np.ndarray:
         return self._board
 
     def __repr__(self):
         return _repr(self)
-
-    @ignore_cache
-    def copy(self, *, cache=False) -> 'BoardState':
-        return deepcopy(self)
 
     def play(self, move: Move) -> 'BoardState':
         new_board = self.copy()
@@ -92,14 +76,6 @@ class BoardState(AbsBoardState):
             return 1, 0
         if w == 2:
             return 0, 1
-
-    def save(self, file: Union[str, Path]):
-        self._save_mod.save_state(file, self)
-
-    @classmethod
-    def load(cls, file: Union[str, Path], *, save_mod = _DEFAULT_SAVE_MOD) -> 'BoardState':
-        return cls._DEFAULT_SAVE_MOD.load_state(file, BoardState)
-
 
     @staticmethod
     def _get_winner_of(section: List[int]) -> int:

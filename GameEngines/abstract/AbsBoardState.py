@@ -14,7 +14,7 @@ class AbsBoardState(ABC):
 
 
     @abstractmethod
-    def __eq__(self, other: 'AbsSaveModule') -> bool: ...
+    def __eq__(self, other: 'AbsBoardState') -> bool: ...
 
     @property
     @abstractmethod

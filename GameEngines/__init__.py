@@ -8,9 +8,10 @@ try:
 except ModuleNotFoundError:
     ...
 
-from .abstract import AbsPlayer, AbsBoardState
+from .abstract import AbsPlayer, AbsBoardState, AbsSaveModule
 from .Game import Game
 from .RandomPlayer import RandomPlayer
+from .BaseBoardState import BaseBoardState
 
 import GameEngines.UltiTTT
 import GameEngines.Avalam

@@ -129,7 +129,12 @@ impl RawUltiTTTState {
     /// returns the current score of the State. In the case of UltiTTT, this means the number of
     /// won sub-boards
     fn score(&self) -> (usize, usize) {
-        return (0, 0)
+        let w = self.winner();
+        return match w {
+            1 => (1, 0),
+            2 => (0, 1),
+            _ => (0, 0),
+        };
     }
 
     /// return the current winner of the game.
