@@ -1,11 +1,12 @@
 use std::cmp::{max, min};
-use std::collections::HashSet;
+use std::collections::{HashSet};
 use itertools::{sorted, Itertools};
-use numpy::{PyArray2};
-use ndarray::{array, Array2, s, Ix2, ArrayViewMut};
-use pyo3::{IntoPy, Py, pyclass, pymethods, PyObject, Python};
+use ndarray::{Array2, ArrayViewMut2, s, array};
+use numpy::{PyArray2, PyArrayMethods};
+use pyo3::prelude::*;
+use pyo3::{Py, pyclass, pymethods, Python, PyTypeInfo};
+use pyo3::types::{PyBool, PyNotImplemented, PySet, PyString, PyType};
 use pyo3::basic::CompareOp;
-use pyo3::types::{PySet, PyType};
 
 trait Isize<T> {
     fn to_isize(&self) -> T;
@@ -72,21 +73,19 @@ impl RawCheckersState {
         })
     }
 
-    fn _has_moves(&self) -> bool {
-        return Python::with_gil(|_py| {
-            let new_board = self.copy();
-            let board = unsafe { new_board._board.as_ref(_py).as_array_mut() };
+    fn _has_moves(&self, py: Python) -> bool {
+        let new_board = self.copy(py).unwrap();
+        let board = unsafe { new_board._board.bind(py).as_array_mut() };
 
-            return board.indexed_iter().filter_map(|(index, &v)| {
-                let condition = if self._curr_pid == 1 { v > 0 } else { v < 0 } && v < 3;
-                if condition { Some(index) } else { None }
-            }).find(|&coord| {
-                Self::_get_moves(&board, coord, false).0.len() > 0
-            }).is_some();
-        });
+        return board.indexed_iter().filter_map(|(index, &v)| {
+            let condition = if self._curr_pid == 1 { v > 0 } else { v < 0 } && v < 3;
+            if condition { Some(index) } else { None }
+        }).find(|&coord| {
+            Self::_get_moves(&board, coord, false).0.len() > 0
+        }).is_some();
     }
 
-    fn _get_moves(board: &ArrayViewMut<i64, Ix2>, pos: Coords, capture_found: bool) -> (Vec<Coords>, bool) {
+    fn _get_moves(board: &ArrayViewMut2<i64>, pos: Coords, capture_found: bool) -> (Vec<Coords>, bool) {
         let val = board.get(pos).unwrap();
         let piece_type = val.abs();
         let piece_sign = val.signum();
@@ -158,138 +157,124 @@ impl RawCheckersState {
     #[new]
     #[pyo3(signature=(save_module=None))]
     /// Creates the initial Checkers State python object
-    fn new(save_module: Option<Py<PyType>>) -> Self{
-        return Python::with_gil(|_py| {
-            let checkers_save: Py<PyType> = match save_module {
-                None => { Self::default_save_mod()}
-                Some(save_mod) => {save_mod}
-            };
+    fn new<'py>(py: Python<'py>, save_module: Option<Bound<'py, PyType>>) -> PyResult<Self> {
+        let checkers_save: Py<PyType> = match save_module {
+            None => { Self::default_save_mod()}
+            Some(save_mod) => {save_mod.unbind()}
+        };
 
-            let board = PyArray2::from_owned_array(_py, RawCheckersState::base_array()).to_owned();
+        let board = PyArray2::from_owned_array(py, RawCheckersState::base_array());
 
-            return RawCheckersState{
-                _board: board,
-                _turn: 0,
-                _curr_pid: 1,
-                _cached_moves: None,
-                _save_mod: checkers_save,
-            }
-        });
+        return Ok(RawCheckersState{
+            _board: board.unbind(),
+            _turn: 0,
+            _curr_pid: 1,
+            _cached_moves: None,
+            _save_mod: checkers_save,
+        })
     }
 
     /// copies and returns a python Checkers State object
-    fn copy(&self) -> Self{
-        return Python::with_gil(|_py|{
-            let board = unsafe { PyArray2::new(_py, self._board.as_ref(_py).dims(), false) };
-            self._board.as_ref(_py).copy_to(board).expect("");
+    fn copy<'py>(&self, py: Python<'py>) -> PyResult<Self> {
+        let board = unsafe { PyArray2::new(py, self._board.bind(py).dims(), false) };
+        self._board.bind(py).copy_to(&board).expect("");
 
-            return RawCheckersState{
-                _board: board.to_owned(),
-                _turn: self._turn,
-                _curr_pid: self._curr_pid,
-                _cached_moves: None,
-                _save_mod: self._save_mod.clone()
-            }
-        });
+        return Ok(RawCheckersState{
+            _board: board.unbind(),
+            _turn: self._turn,
+            _curr_pid: self._curr_pid,
+            _cached_moves: None,
+            _save_mod: self._save_mod.clone()
+        })
     }
 
     /// play an action on the Checkers State and returns the following State object
-    fn play(&self, c_move: Move) -> Self {
-        Python::with_gil(|_py| {
-            let l_move = Self::_to_local(c_move);
+    fn play<'py>(&self, py: Python<'py>, c_move: Move) -> PyResult<Self> {
+        let l_move = Self::_to_local(c_move);
 
-            let origin = l_move.0;
-            let dest = l_move.1;
+        let origin = l_move.0;
+        let dest = l_move.1;
 
-            let xs = sorted(vec![origin.0, dest.0]).collect_vec();
-            let ys = sorted(vec![origin.1, dest.1]).collect_vec();
+        let xs = sorted(vec![origin.0, dest.0]).collect_vec();
+        let ys = sorted(vec![origin.1, dest.1]).collect_vec();
 
-            let mut new_board = self.copy();
-            let mut board = unsafe { new_board._board.as_ref(_py).as_array_mut() };
-            new_board._turn += 1;
+        let mut new_board = self.copy(py)?;
+        let mut board = unsafe { new_board._board.bind(py).as_array_mut() };
+        new_board._turn += 1;
 
-            let beg_val = board[[origin.0, origin.1]];
+        let beg_val = board[[origin.0, origin.1]];
 
-            // removes all between origin and dest
-            board.slice_mut(s![xs[0]..(xs[1] + 1), ys[0]..(ys[1] + 1)]).fill(0);
+        // removes all between origin and dest
+        board.slice_mut(s![xs[0]..(xs[1] + 1), ys[0]..(ys[1] + 1)]).fill(0);
 
-            // setting the final
-            board[[dest.0, dest.1]] = beg_val;
+        // setting the final
+        board[[dest.0, dest.1]] = beg_val;
 
-            // change from 1 -> 2 on the end row
-            if c_move.1.0 == [0, 7][usize::try_from(self._curr_pid % 2).unwrap()] && beg_val.abs() == 1 {
-                board[[dest.0, dest.1]] *= 2;
+        // change from 1 -> 2 on the end row
+        if c_move.1.0 == [0, 7][usize::try_from(self._curr_pid % 2)?] && beg_val.abs() == 1 {
+            board[[dest.0, dest.1]] *= 2;
+        }
+
+        // If the played move is a capture, check if multi jump available
+        let is_capture = (xs[1] - xs[0] + ys[1] - ys[0]) > 1;
+        if is_capture {
+            // If multi jump available, cache them for next step
+            let (moves, _) = Self::_get_moves(&board, dest, true);
+            if moves.len() > 0 {
+                let move_set: HashSet<Move> = HashSet::from_iter(
+                    moves.into_iter().map(|d| Self::_from_local((dest, d)) )
+                );
+                new_board._cached_moves = Some(
+                        PySet::new(py, move_set)?.unbind()
+                );
+                return Ok(new_board)
             }
-
-            // If the played move is a capture, check if multi jump available
-            let is_capture = (xs[1] - xs[0] + ys[1] - ys[0]) > 1;
-            if is_capture {
-                // If multi jump available, cache them for next step
-                let (moves, _) = Self::_get_moves(&board, dest, true);
-                if moves.len() > 0 {
-                    let move_set: HashSet<Move> = HashSet::from_iter(
-                        moves.into_iter().map(|d| Self::_from_local((dest, d)) )
-                    );
-                    new_board._cached_moves = Some(
-                            move_set
-                            .into_py(_py)
-                            .downcast::<PySet>(_py).unwrap().into_py(_py)
-                    );
-                    return new_board
-                }
-            }
-            new_board._cached_moves = None;
-            new_board._curr_pid = (self._curr_pid % 2) + 1;
-            return new_board;
-        })
+        }
+        new_board._cached_moves = None;
+        new_board._curr_pid = (self._curr_pid % 2) + 1;
+        return Ok(new_board);
     }
 
     /// standard implementation of the `get_legal_moves` python method. it returns the legal
     /// actions the specified player can take.
-    fn get_legal_moves(&self) -> PyObject {
-        return Python::with_gil(|_py| {
-            if let Some(moves) = &self._cached_moves {
-                return moves.into_py(_py).clone();
+    fn get_legal_moves<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PySet>> {
+        if let Some(moves) = &self._cached_moves {
+            return Ok(moves.bind(py).to_owned());
+        }
+
+        let new_board = self.copy(py)?;
+        let board = unsafe { new_board._board.bind(py).as_array_mut() };
+
+        let coords = board.indexed_iter().filter_map(|(index, &v)| {
+                let condition = if self._curr_pid == 1 {v > 0} else {v < 0} && v < 3;
+                if condition { Some(index) } else {None} })
+            .collect_vec();
+
+        let mut moves: Vec<Move> = Vec::new();
+        let mut capture = false;
+        for coord in coords {
+            let (destinations, _capture) = Self::_get_moves(&board, coord, capture);
+            // If a capture is detected, drop normal moves and only keep captures
+            if _capture && !capture {
+                moves = Vec::new();
+                capture = true;
             }
-
-            let new_board = self.copy();
-            let board = unsafe { new_board._board.as_ref(_py).as_array_mut() };
-
-            let coords = board.indexed_iter().filter_map(|(index, &v)| {
-                    let condition = if self._curr_pid == 1 {v > 0} else {v < 0} && v < 3;
-                    if condition { Some(index) } else {None} })
-                .collect_vec();
-
-            let mut moves: Vec<Move> = Vec::new();
-            let mut capture = false;
-            for coord in coords {
-                let (destinations, _capture) = Self::_get_moves(&board, coord, capture);
-                // If a capture is detected, drop normal moves and only keep captures
-                if _capture && !capture {
-                    moves = Vec::new();
-                    capture = true;
-                }
-                moves.extend(destinations.into_iter().map(|d| Self::_from_local((coord, d)) ))
-            }
-            let move_set: HashSet<Move> = HashSet::from_iter(moves.into_iter());
-            return move_set.into_py(_py)
-                    .downcast::<PySet>(_py)
-                    .unwrap().into_py(_py)
-        });
+            moves.extend(destinations.into_iter().map(|d| Self::_from_local((coord, d)) ))
+        }
+        let move_set: HashSet<Move> = HashSet::from_iter(moves.into_iter());
+        return PySet::new(py, move_set);
     }
 
     /// returns the current score of the State. In the case of Checkers, this means the number of
     /// pieces on the board
-    fn score(&self) -> (usize, usize) {
-        Python::with_gil(|_py| {
-            let array = self._board.as_ref(_py).to_owned_array();
-            return array.fold((0, 0), |r, &v| {
-                return match v {
-                     1 |  2 => (r.0 + 1, r.1),
-                    -1 | -2 => (r.0, r.1 + 1),
-                    _ => r,
-                }
-            })
+    fn score<'py>(&self, py: Python<'py>) -> (usize, usize) {
+        let array = self._board.bind(py).to_owned_array();
+        return array.fold((0, 0), |r, &v| {
+            return match v {
+                 1 |  2 => (r.0 + 1, r.1),
+                -1 | -2 => (r.0, r.1 + 1),
+                _ => r,
+            }
         })
     }
 
@@ -300,42 +285,37 @@ impl RawCheckersState {
     /// If the game is a tie it returns -1
     ///
     /// Otherwise, it returns the player id of the winner
-    fn winner(&self) -> u32{
-        let (p1, p2) = self.score();
+    fn winner<'py>(&self, py: Python<'py>) -> u32{
+        let (p1, p2) = self.score(py);
 
         if p1 <= 0 || p2 <= 0 {
             return if p1 > 0 { 1 } else { 2 }
         }
 
-        if !self._has_moves() {
+        if !self._has_moves(py) {
             return (self._curr_pid % 2) + 1
         }
 
         return 0
     }
 
-    fn save(slf: PyObject, file: PyObject) {
-        Python::with_gil(|_py|{
-            let save_mod = slf.getattr(_py, "_save_mod").unwrap();
-            save_mod.call_method(
-                _py, "save_state", (file, slf), None
-            ).unwrap();
-        })
+    fn save<'py>(slf: Bound<'py, Self>, file: Bound<'py, PyAny>) {
+        let save_mod = slf.getattr("_save_mod").unwrap();
+        save_mod.call_method("save_state", (file, slf), None).unwrap();
     }
 
     #[staticmethod]
     #[pyo3(signature=(file, save_module=None))]
-    fn load(file: PyObject, save_module: Option<Py<PyType>>) -> PyObject {
+    fn load<'py>(file: Bound<'py, PyString>, save_module: Option<Bound<'py, PyType>>) -> PyResult<Bound<'py, PyAny>> {
         let avalam_save: Py<PyType> = match save_module {
             None => { Self::default_save_mod()}
-            Some(save_mod) => {save_mod}
+            Some(save_mod) => {save_mod.unbind()}
         };
 
-        Python::with_gil(|_py|{
-            avalam_save.call_method(
-                _py, "load_state", (file, _py.get_type::<Self>()), None
-            ).unwrap()
-        })
+        let py = file.py();
+        avalam_save.bind(py.clone()).call_method(
+            "load_state",  (file, Self::type_object(py.clone())), None
+        )
     }
 
     #[getter]
@@ -347,31 +327,29 @@ impl RawCheckersState {
     #[getter]
     fn board(&self) -> &Py<PyArray2<i64>> { return &self._board }
 
-    fn __richcmp__(&self, other: &Self, op: CompareOp) -> PyObject {
-        Python::with_gil(|_py| {
-            return match op {
-                CompareOp::Eq => {
-                    let board_eq = std::iter::zip(
-                        self._board.as_ref(_py).to_owned_array(),
-                        other._board.as_ref(_py).to_owned_array()
-                    ).all(|(a, b)| a == b);
+    fn __richcmp__<'py>(&self, py: Python<'py>, other: &Self, op: CompareOp) -> PyResult<Bound<'py, PyBool>> {
+        return match op {
+            CompareOp::Eq => {
+                let board_eq = std::iter::zip(
+                    self._board.bind(py).to_owned_array(),
+                    other._board.bind(py).to_owned_array()
+                ).all(|(a, b)| a == b);
 
-                    let cache_eq = match (&self._cached_moves, &other._cached_moves)  {
-                        (None, None) => true,
-                        (None, Some(_)) | (Some(_), None) => false,
-                        (Some(s_moves), Some(o_moves)) => {
-                            s_moves.as_ref(_py).eq(o_moves.as_ref(_py)).unwrap()
-                        }
-                    };
+                let cache_eq = match (&self._cached_moves, &other._cached_moves)  {
+                    (None, None) => true,
+                    (None, Some(_)) | (Some(_), None) => false,
+                    (Some(s_moves), Some(o_moves)) => {
+                        s_moves.bind(py).eq(o_moves.bind(py))?
+                    }
+                };
 
-                    let turn_eq = self._turn == other._turn;
-                    let curr_pid_eq = self._curr_pid == other._curr_pid;
+                let turn_eq = self._turn == other._turn;
+                let curr_pid_eq = self._curr_pid == other._curr_pid;
 
-                    let res = board_eq && cache_eq && turn_eq && curr_pid_eq;
-                    res.into_py(_py)
-                },
-                _ => { _py.NotImplemented() },
-            }
-        })
+                let res = board_eq && cache_eq && turn_eq && curr_pid_eq;
+                Ok(PyBool::new(py, res).to_owned())
+            },
+            _ => { Err(PyErr::new::<PyNotImplemented, _>("")) },
+        }
     }
 }

@@ -1,11 +1,11 @@
 use std::collections::{HashSet};
 use itertools::{Itertools};
-use numpy::{PyArray2};
 use ndarray::{Array2};
-use pyo3::{IntoPy, Py, pyclass, pymethods, PyObject, Python};
+use numpy::{PyArray2, PyArrayMethods};
+use pyo3::prelude::*;
+use pyo3::{Py, pyclass, pymethods, Python, PyTypeInfo};
+use pyo3::types::{PyBool, PyNotImplemented, PySet, PyString, PyType};
 use pyo3::basic::CompareOp;
-use pyo3::types::{PyType};
-
 type Coords = (usize, usize);
 type Move = (Coords, Coords);
 
@@ -44,59 +44,55 @@ impl RawUltiTTTState {
     #[new]
     #[pyo3(signature=(save_module=None))]
     /// Creates the initial UltiTTT State python object
-    fn new(save_module: Option<Py<PyType>>) -> Self{
-        return Python::with_gil(|_py| {
-            let ultittt_save: Py<PyType> = match save_module {
-                None => { Self::default_save_mod()}
-                Some(save_mod) => {save_mod}
-            };
+    fn new<'py>(py: Python<'py>, save_module: Option<Bound<'py, PyType>>) -> PyResult<Self> {
+        let ultittt_save: Py<PyType> = match save_module {
+            None => { Self::default_save_mod()}
+            Some(save_mod) => {save_mod.unbind()}
+        };
 
-            return RawUltiTTTState {
-                _board: PyArray2::from_owned_array(_py, Array2::zeros((9, 9))).to_owned(),
-                _turn: 0,
-                _win_state: [0; 9],
-                _active_cell: -1,
-                _curr_pid: 1,
-                _save_mod: ultittt_save
-            };
+        let board = PyArray2::from_owned_array(py, Array2::zeros((9, 9)));
+
+        return Ok(RawUltiTTTState {
+            _board: board.unbind(),
+            _turn: 0,
+            _win_state: [0; 9],
+            _active_cell: -1,
+            _curr_pid: 1,
+            _save_mod: ultittt_save
         });
     }
 
     /// copies and returns a python UltiTTT State object
-    fn copy(&self) -> Self{
-        return Python::with_gil(|_py|{
-            let board = unsafe { PyArray2::new(_py, self._board.as_ref(_py).dims(), false) };
-            self._board.as_ref(_py).copy_to(board).expect("");
+    fn copy<'py>(&self, py: Python<'py>) -> PyResult<Self> {
+        let board = unsafe { PyArray2::new(py, self._board.bind(py).dims(), false) };
+        self._board.bind(py).copy_to(&board).expect("");
 
-            return RawUltiTTTState{
-                _board: board.to_owned(),
-                _turn: self._turn,
-                _win_state: self._win_state,
-                _active_cell: self._active_cell,
-                _curr_pid: self._curr_pid,
-                _save_mod: self._save_mod.clone()
-            };
+        return Ok(RawUltiTTTState{
+            _board: board.unbind(),
+            _turn: self._turn,
+            _win_state: self._win_state,
+            _active_cell: self._active_cell,
+            _curr_pid: self._curr_pid,
+            _save_mod: self._save_mod.clone()
         });
     }
 
     /// play an action on the UltiTTT State and returns the following State object
-    fn play(&self, c_move: Move) -> Self {
+    fn play<'py>(&self, py: Python<'py>, c_move: Move) -> PyResult<Self> {
         let sup_cell = c_move.0;
         let sub_cell = c_move.1;
 
         let sup_i = 3 * sup_cell.0 + sup_cell.1;
         let sub_i = 3 * sub_cell.0 + sub_cell.1;
 
-        let mut new_board = self.copy();
+        let mut new_board = self.copy(py)?;
 
-        Python::with_gil(|_py| {
-            let b_ref = new_board._board.as_ref(_py);
-            b_ref.set_item((sup_i, sub_i), self._curr_pid).expect("Cell outside expected range");
+        let b_ref = new_board._board.bind(py);
+        b_ref.set_item((sup_i, sub_i), self._curr_pid).expect("Cell outside expected range");
 
-            new_board._win_state[sup_i] = get_winner_of(
-                unsafe { b_ref.as_array() }.row(sup_i).iter()
-            );
-        });
+        new_board._win_state[sup_i] = get_winner_of(
+            unsafe { b_ref.as_array() }.row(sup_i).iter()
+        );
 
         new_board._turn += 1;
         new_board._active_cell =
@@ -104,26 +100,26 @@ impl RawUltiTTTState {
             else { i64::try_from(sub_i).expect("Cell outside expected range") };
 
         new_board._curr_pid = (self._curr_pid % 2) + 1;
-        return new_board
+        return Ok(new_board)
     }
 
     /// standard implementation of the `get_legal_moves` python method. it returns the legal
     /// actions the specified player can take.
-    fn get_legal_moves(&self) -> PyObject {
-        Python::with_gil(|_py| {
-            let board = unsafe { self._board.as_ref(_py).as_array() };
-            let active_cell = usize::try_from(self._active_cell);
+    fn get_legal_moves<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PySet>> {
+        let board = unsafe { self._board.bind(py).as_array() };
+        let active_cell = usize::try_from(self._active_cell);
 
-            let condition: Box<dyn Fn(i64, usize) -> bool> = if self._active_cell == -1 || self._win_state[active_cell.unwrap()] != 0 {
-                Box::new(|v: i64, i: usize| -> bool { v == 0 && self._win_state[i] == 0 })
-            } else {
-                Box::new(|v: i64, i: usize| -> bool { v == 0  && i == active_cell.unwrap() })
-            };
+        let condition: Box<dyn Fn(i64, usize) -> bool> = if self._active_cell == -1 || self._win_state[active_cell?] != 0 {
+            Box::new(|v: i64, i: usize| -> bool { v == 0 && self._win_state[i] == 0 })
+        } else {
+            Box::new(|v: i64, i: usize| -> bool { v == 0  && i == active_cell.unwrap() })
+        };
 
-            return board.indexed_iter().filter_map(|((i,j),&v)| {
-                if condition(v, i) { Some(((i / 3, i % 3), (j / 3, j % 3))) } else { None }
-            }).collect::<HashSet<Move>>().into_py(_py)
-        })
+        let moves = board.indexed_iter().filter_map(|((i,j),&v)| {
+            if condition(v, i) { Some(((i / 3, i % 3), (j / 3, j % 3))) } else { None }
+        }).collect::<HashSet<Move>>();
+
+        return PySet::new(py, &moves)
     }
 
     /// returns the current score of the State. In the case of UltiTTT, this means the number of
@@ -148,28 +144,23 @@ impl RawUltiTTTState {
         return get_winner_of(self._win_state.iter())
     }
 
-    fn save(slf: PyObject, file: PyObject) {
-        Python::with_gil(|_py|{
-            let save_mod = slf.getattr(_py, "_save_mod").unwrap();
-            save_mod.call_method(
-                _py, "save_state", (file, slf), None
-            ).unwrap();
-        })
+    fn save<'py>(slf: Bound<'py, Self>, file: Bound<'py, PyAny>) {
+        let save_mod = slf.getattr("_save_mod").unwrap();
+        save_mod.call_method("save_state", (file, slf), None).unwrap();
     }
 
     #[staticmethod]
     #[pyo3(signature=(file, save_module=None))]
-    fn load(file: PyObject, save_module: Option<Py<PyType>>) -> PyObject {
+    fn load<'py>(file: Bound<'py, PyString>, save_module: Option<Bound<'py, PyType>>) -> PyResult<Bound<'py, PyAny>> {
         let avalam_save: Py<PyType> = match save_module {
             None => { Self::default_save_mod()}
-            Some(save_mod) => {save_mod}
+            Some(save_mod) => {save_mod.unbind()}
         };
 
-        Python::with_gil(|_py|{
-            avalam_save.call_method(
-                _py, "load_state", (file, _py.get_type::<Self>()), None
-            ).unwrap()
-        })
+        let py = file.py();
+        avalam_save.bind(py.clone()).call_method(
+            "load_state",  (file, Self::type_object(py.clone())), None
+        )
     }
 
     #[getter]
@@ -181,26 +172,24 @@ impl RawUltiTTTState {
     #[getter]
     fn board(&self) -> &Py<PyArray2<i64>> { return &self._board }
 
-    fn __richcmp__(&self, other: &Self, op: CompareOp) -> PyObject {
-        Python::with_gil(|_py| {
-            return match op {
-                CompareOp::Eq => {
-                    let board_eq = std::iter::zip(
-                        self._board.as_ref(_py).to_owned_array(),
-                        other._board.as_ref(_py).to_owned_array()
-                    ).all(|(a, b)| a == b);
+    fn __richcmp__<'py>(&self, py: Python<'py>, other: &Self, op: CompareOp) -> PyResult<Bound<'py, PyBool>> {
+        return match op {
+            CompareOp::Eq => {
+                let board_eq = std::iter::zip(
+                    self._board.bind(py).to_owned_array(),
+                    other._board.bind(py).to_owned_array()
+                ).all(|(a, b)| a == b);
 
-                    let turn_eq = self._turn == other._turn;
-                    let curr_pid_eq = self._curr_pid == other._curr_pid;
-                    let active_cell_eq = self._active_cell == other._active_cell;
-                    let win_state_eq = self._win_state == other._win_state;
+                let turn_eq = self._turn == other._turn;
+                let curr_pid_eq = self._curr_pid == other._curr_pid;
+                let active_cell_eq = self._active_cell == other._active_cell;
+                let win_state_eq = self._win_state == other._win_state;
 
-                    let res = board_eq && active_cell_eq && turn_eq && curr_pid_eq && win_state_eq;
-                    res.into_py(_py)
-                },
-                _ => { _py.NotImplemented() },
-            }
-        })
+                let res = board_eq && active_cell_eq && turn_eq && curr_pid_eq && win_state_eq;
+                Ok(PyBool::new(py, res).to_owned())
+            },
+            _ => { Err(PyErr::new::<PyNotImplemented, _>("")) },
+        }
     }
 }
 
