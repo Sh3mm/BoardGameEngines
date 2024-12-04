@@ -1,5 +1,4 @@
 from typing import Set, Type, Optional
-from itertools import product
 import numpy as np
 
 from GameEngines import BaseBoardState, AbsSaveModule
@@ -17,7 +16,6 @@ class BoardState(BaseBoardState):
     Rules for the game can be found online
     """
     INIT_INFO = utils.board_setup()
-    INIT_MOVES = utils.gen_moves(utils.board_setup()[0])
     _DEFAULT_SAVE_MOD = AvalamSave
 
     def __init__(self, *, save_module: Type[AbsSaveModule] = _DEFAULT_SAVE_MOD):
@@ -25,8 +23,8 @@ class BoardState(BaseBoardState):
 
         self._board: np.ndarray = self.INIT_INFO[0]
         self._ratios: np.ndarray = self.INIT_INFO[1] # Table of the ratios of each piece type in towers
-        self._moves: Set[Move] = self.INIT_MOVES # The current moves updated when _update_moves is called
-        self._on_move_call: Optional[Move] = None # Last move kept to update the _moves
+        self._moves: Set[Move] = set() # Deprecated. Kept for parity with the Rust engine
+        self._on_move_call: Optional[Move] = None # Deprecated. Kept for parity with the Rust engine
 
     def __eq__(self, other: 'BoardState') -> bool:
         return (
@@ -48,9 +46,6 @@ class BoardState(BaseBoardState):
         return _repr(self)
 
     def play(self, move: Move) -> 'BoardState':
-        if self._on_move_call is not None:
-            self._update_moves(*self._on_move_call)
-
         origin: Coords = move[0]
         dest: Coords = move[1]
 
@@ -64,16 +59,37 @@ class BoardState(BaseBoardState):
 
         new_board._update_ratios(origin, dest)
 
-        new_board._on_move_call = (origin, dest)
         new_board._curr_pid = (self._curr_pid % 2) + 1
         return new_board
 
     @cache_moves
     def get_legal_moves(self, *, cache=False) -> Set[Move]:
-        if self._on_move_call is not None:
-            self._update_moves(*self._on_move_call)
-            self._on_move_call = None
-        return self._moves
+        abs_board: np.ndarray[int] = np.abs(self._board)
+        towers = ((0 < abs_board) & (abs_board < 5))
+
+        def f(i, j):
+            base = np.zeros((3, 3))
+            base[
+            max(0, i-1) - i+1: min(9, i+2) - i+1,
+            max(0, j-1) - j+1: min(9, j+2) - j+1
+            ] = abs_board[max(0, i-1):i+2, max(0, j-1):j+2]
+            return base.flatten()
+
+        non_zero = towers.nonzero()
+        coords = list(zip(*non_zero))
+
+        to = np.fromiter((f(i, j) for i, j in coords), np.dtype((np.int64, (9,))))
+        to[:, 4] = 0
+
+        value = np.repeat(abs_board[non_zero][:, np.newaxis], 9, axis=1)
+
+        possibilities = value + to
+        positions = zip(*((value < possibilities) & (possibilities <= 5)).nonzero())
+
+        return set(
+            (coords[i], (coords[i][0] - 1 + (j // 3), coords[i][1] - 1 + (j % 3)))
+            for i, j in positions
+        )
 
     def score(self) -> Tuple[int, int]:
         return (
@@ -82,8 +98,7 @@ class BoardState(BaseBoardState):
         )
 
     def winner(self) -> int:
-        # unfinished
-        if len(self.get_legal_moves()) > 0:
+        if self._has_moves():
             return 0
 
         p1, p2 = self.score()
@@ -93,21 +108,28 @@ class BoardState(BaseBoardState):
         # winner
         return int(p1 < p2) + 1
 
-    def _update_moves(self, origin: Coords, dest: Coords):
-        """method used to update the cached moves for the state upon creation"""
-        for i, j in product(range(-1, 2), range(-1, 2)):
-            self._moves.discard((origin, (origin[0] + i, origin[1] + j)))
-            self._moves.discard(((origin[0] + i, origin[1] + j), origin))
-
-        for i, j in product(range(-1, 2), range(-1, 2)):
-            if not (0 <= dest[0] + i < 9 and
-                    0 <= dest[1] + j < 9):
-                continue
-            if abs(self._board[dest]) + abs(self._board[(dest[0] + i, dest[1] + j)]) > 5:
-                self._moves.discard(((dest[0] + i, dest[1] + j), dest))
-                self._moves.discard((dest, (dest[0] + i, dest[1] + j)))
-
     def _update_ratios(self, origin: Coords, dest: Coords):
         """method used to update the ratios for the state upon creation"""
         self._ratios[:, dest[0], dest[1]] += self._ratios[:, origin[0], origin[1]]
         self._ratios[:, origin[0], origin[1]] = 0
+
+    def _has_moves(self) -> bool:
+        abs_board: np.ndarray[int] = np.abs(self._board)
+        towers = ((0 < abs_board) & (abs_board < 5))
+
+        for i, j in zip(*towers.nonzero()):
+            to = np.zeros((3, 3))
+            to[
+            max(0, i-1) - i+1: min(9, i+2) - i+1,
+            max(0, j-1) - j+1: min(9, j+2) - j+1
+            ] = abs_board[max(0, i-1):i+2, max(0, j-1):j+2]
+            to = to.flatten()
+            to[4] = 0
+
+            value = abs_board[(i, j)]
+
+            possibilities = to + value
+            if np.sum((value < possibilities) & (possibilities <= 5)) > 1:
+                return True
+
+        return False
