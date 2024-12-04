@@ -26,7 +26,11 @@ class AvalamSave(AbsSaveModule):
         data["board"] = np.array(data["board"]).reshape((9, 9))
         data["ratios"] = np.array(data["ratios"]).reshape((2, 9, 9))
         data["move_cache"] = set((tuple(i[0]), tuple(i[1])) for i in data["move_cache"])
-        data["on_move_call"] = (tuple(data["on_move_call"][0]), tuple(data["on_move_call"][1]))
+
+        if data["on_move_call"] is not None:
+            data["on_move_call"] = (tuple(data["on_move_call"][0]), tuple(data["on_move_call"][1]))
+        else:
+            data["on_move_call"] = None
 
         return AvalamSave._put_data(data, state_type)
 
