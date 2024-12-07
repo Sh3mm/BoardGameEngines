@@ -23,8 +23,6 @@ class BoardState(BaseBoardState):
 
         self._board: np.ndarray = self.INIT_INFO[0]
         self._ratios: np.ndarray = self.INIT_INFO[1] # Table of the ratios of each piece type in towers
-        self._moves: Set[Move] = set() # Deprecated. Kept for parity with the Rust engine
-        self._on_move_call: Optional[Move] = None # Deprecated. Kept for parity with the Rust engine
 
     def __eq__(self, other: 'BoardState') -> bool:
         return (
@@ -129,7 +127,7 @@ class BoardState(BaseBoardState):
             value = abs_board[(i, j)]
 
             possibilities = to + value
-            if np.sum((value < possibilities) & (possibilities <= 5)) > 1:
+            if np.sum((value < possibilities) & (possibilities <= 5)) >= 1:
                 return True
 
         return False
