@@ -16,6 +16,8 @@ Games are implemented in both native python for use on all platforms and Rust fo
 - [Chess](https://en.wikipedia.org/wiki/Chess)
 - [Quoridor](https://en.wikipedia.org/wiki/Quoridor)
 - [Go](https://en.wikipedia.org/wiki/Go_(game))
+- [Riversi](https://en.wikipedia.org/wiki/Reversi)
+- [Nine men's morris](https://en.wikipedia.org/wiki/Nine_men%27s_morris)
 - [Backgammon](https://en.wikipedia.org/wiki/Backgammon)
 
 ## Usage
