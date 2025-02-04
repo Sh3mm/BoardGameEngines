@@ -25,18 +25,18 @@ def main(args: argparse.Namespace):
     rust_engine(name, rust_templates)
 
 
-def python_engine(name, python_templates):
+def python_engine(name: str, python_templates):
     env = Environment(loader=FileSystemLoader(python_templates))
     for path in env.list_templates():
         template = env.get_template(path)
         result = template.render(GameName=name)
 
-        out_file = (Path("GameEngines") / name / path[:-3])
+        out_file = (Path("GameEngines") / name / path[:-3].format(GameName=name))
         out_file.parent.mkdir(exist_ok=True, parents=True)
         out_file.write_text(result)
 
 
-def rust_engine(name, rust_templates):
+def rust_engine(name: str, rust_templates):
     env = Environment(loader=FileSystemLoader(rust_templates))
     template = env.get_template("RustGame.rs.j2")
     result = template.render(GameName=name)
