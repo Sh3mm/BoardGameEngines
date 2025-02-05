@@ -30,6 +30,21 @@ class BoardState(BaseBoardState):
             PlayerInfo(b_size**2 - 1 - b_size // 2, max_wall)
         ]
 
+    def __deepcopy__(self, memodict={}):
+        cp = BoardState.__new__(BoardState)
+        BaseBoardState.__init__(cp, save_module=self._save_mod)
+
+        cp.BOARD_SIZE = self.BOARD_SIZE
+        cp.MAX_WALL = self.MAX_WALL
+
+        cp._turn = self._turn
+        cp._curr_pid = self._curr_pid
+
+        cp._board = self._board.copy()
+        cp._walls = self._walls.copy()
+        cp._players = self._players.copy()
+        return cp
+
     def __eq__(self, other: 'BoardState') -> bool:
         return (
             self._players == other._players and

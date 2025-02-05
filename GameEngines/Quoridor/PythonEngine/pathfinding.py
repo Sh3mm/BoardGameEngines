@@ -30,7 +30,6 @@ def dfs(board: np.ndarray, ini_pos: int, goal: range, pid: int):
             lifo.append((p, path + [p]))
             visited.add(p)
 
-
 def best_fs(board: np.ndarray, ini_pos: int, goal: range, pid: int):
     cache = [[] for _ in range(9)]
     cache[dist(ini_pos, pid)].append((ini_pos, [ini_pos]))

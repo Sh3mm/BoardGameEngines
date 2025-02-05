@@ -1,9 +1,11 @@
+from collections import Counter
 from typing import Tuple, List, Union, Set
 import numpy as np
-from itertools import chain
+from itertools import chain, product
+from functools import reduce
 
 from GameEngines.Quoridor.utilsTypes import WallType, MoveType
-from GameEngines.Quoridor.PythonEngine.pathfinding import dfs, best_fs
+from GameEngines.Quoridor.PythonEngine.pathfinding import dfs
 
 
 _Jump = Tuple[int, int]
@@ -45,21 +47,31 @@ def validate_walls(board, poses, new_walls: List[_Wall], old_walls: Set[_Wall]) 
     goals = [range(72, 81), range(0, 9)]
 
     paths = [dfs(board, poses[pid1], goals[pid1], pid1), dfs(board, poses[pid2], goals[pid2], pid2)]
-
     legit, to_check = _filter_pass(paths, to_check)
 
+    wall_type = reduce(lambda acc, v: v[0] if acc == -1 else (acc if acc == v[0] else None), old_walls, -1)
     for wall in to_check:
+        if wall_type == wall[0]: # cannot block a player with walls of a single type
+            legit.append(wall)
+            continue
+
+        # if the new wall does not touch any existing wall, it can't block the way
+        distances = [max(abs(w1[1] // 9 - w2[1] // 9), abs(w1[1] % 9 - w2[1] % 9)) for w1, w2 in product(old_walls, [wall])]
+        if reduce(lambda acc, v: acc and v > 2, distances, True):
+            legit.append(wall)
+            continue
+
         is_legit = (
-            dfs(cut_wall(board, wall), poses[pid1], goals[pid1], pid1) is not None and
-            dfs(cut_wall(board, wall), poses[pid2], goals[pid2], pid2) is not None
+            _has_path(cut_wall(board, wall), poses[pid1], goals[pid1], pid1) and
+            _has_path(cut_wall(board, wall), poses[pid2], goals[pid2], pid2)
         )
         if is_legit:
             legit.append(wall)
+            continue
 
     return legit
 
 def _filter_pass(paths, to_check: Set[_Wall]) -> Tuple[List[_Wall], Set[_Wall]]:
-
     pairs = set(
         [(min(v, paths[0][i+1]), abs(v - paths[0][i+1])) for i, v in enumerate(paths[0][:-1])] +
         [(min(v, paths[1][i+1]), abs(v - paths[1][i+1])) for i, v in enumerate(paths[1][:-1])]
@@ -74,3 +86,15 @@ def _filter_pass(paths, to_check: Set[_Wall]) -> Tuple[List[_Wall], Set[_Wall]]:
     legit = to_check.difference(prob_walls)
     return list(legit), to_check.difference(legit)
 
+def _has_path(board: np.ndarray, ini_pos: int, goal: range, pid: int):
+    lifo = [ini_pos]
+    visited = {-1}
+    while len(lifo) > 0:
+        pos = lifo.pop()
+        if pos in goal:
+            return True
+
+        to_visit = sorted(set(board[:, pos]) - visited, reverse=(pid == 1))
+        lifo.extend(to_visit)
+        visited.update(to_visit)
+    return False
