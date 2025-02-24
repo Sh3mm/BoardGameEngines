@@ -1,4 +1,3 @@
-from collections import Counter
 from typing import Tuple, List, Union, Set
 import numpy as np
 from itertools import chain, product

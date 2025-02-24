@@ -114,25 +114,29 @@ class BoardState(BaseBoardState):
             ((WallType.V, i) for i in np.where(potential_lr)[0])
         ))
 
-    def _is_legit_wall(self, wall: _Wall) -> bool:
-        if len(self._walls) < 2: # Cannot block a player with less than 3 walls
-            return True
-
-        if sum(w[0] == wall[0] for w in self._walls) == len(self._walls): # Cannot block a player with only one type of wall
-            return True
-
-        s_pid, o_pid = self._curr_pid, (self._curr_pid % 2) + 1
-        goals = [range(72, 81), range(0, 9)]
-
-        return (
-            dfs(cut_wall(self._board, wall), self._players[s_pid - 1].pos, goals[s_pid - 1], s_pid - 1) is not None and
-            dfs(cut_wall(self._board, wall), self._players[o_pid - 1].pos, goals[o_pid - 1], o_pid - 1) is not None
-        )
-
     def _get_jumps(self) -> List[_Jump]:
-        pos = self._players[self._curr_pid - 1].pos
-        dest = self._board[:, pos]
-        return list((pos, d) for d in dest if d != -1)
+        s_pos = self._players[self._curr_pid - 1      ].pos
+        o_pos = self._players[self._curr_pid % 2].pos
+        dest = self._board[:, s_pos]
+
+        # if the other player is not next to the active one
+        if o_pos not in dest:
+            return [(s_pos, d) for d in dest if d != -1]
+
+        jumps = []
+        for d in dest:
+            if d == o_pos:
+                _dest = self._board[:, o_pos]
+                jump1 = s_pos + 2 * (o_pos - s_pos)
+                if 81 > jump1 >= 0 and jump1 in _dest:
+                    jumps.append((s_pos, jump1))
+                    continue
+                else:
+                    _dest = set(_dest).difference((jump1, -1, s_pos))
+                    jumps.extend((s_pos, d) for d in _dest)
+            elif d != -1:
+                jumps.append((s_pos, d))
+        return jumps
 
     def winner(self) -> int:
         # If p2 is in the first row, they wins
