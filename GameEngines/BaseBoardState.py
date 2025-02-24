@@ -9,8 +9,8 @@ class BaseBoardState(AbsBoardState):
 
     def __init__(self, *, save_module: Type[AbsSaveModule] = _DEFAULT_SAVE_MOD):
         self._board = None
-        self._turn = 0
-        self._curr_pid = 1
+        self._turn: int = 0
+        self._curr_pid: int = 1
 
         self._save_mod = save_module
 

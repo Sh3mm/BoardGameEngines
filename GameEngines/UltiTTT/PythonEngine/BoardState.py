@@ -17,6 +17,18 @@ class BoardState(BaseBoardState):
         self._win_state = [0] * 9 # The top level tic-tac-toe game
         self._active_cell = -1 # The active cell in the top level game
 
+    def __deepcopy__(self, memodict={}):
+        cp = BoardState.__new__(BoardState)
+        BaseBoardState.__init__(cp, save_module=self._save_mod)
+        cp._turn = self._turn
+        cp._curr_pid = self._curr_pid
+
+        cp._active_cell = self._active_cell
+
+        cp._board = self._board.copy()
+        cp._win_state = self._win_state.copy()
+        return cp
+
     def __eq__(self, other: 'BoardState') -> bool:
         return (
             np.array_equal(self._board, other._board) and

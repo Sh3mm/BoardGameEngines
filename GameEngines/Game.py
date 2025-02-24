@@ -1,19 +1,24 @@
-from typing import Type, List, Any
+from typing import Type, List, Any, Union
+from inspect import isclass
 import time
 import math
 from GameEngines.abstract import AbsBoardState, AbsPlayer
 
-
+BoardOrType = Union[AbsBoardState, Type[AbsBoardState]]
 class Game:
     """
     This Class represents a game between two AbsPlayer agent.
     It can play any game implementing AbsBoardState
     """
-    def __init__(self, board_class: Type[AbsBoardState], p0: AbsPlayer, p1: AbsPlayer):
+    def __init__(self, board: BoardOrType, p0: AbsPlayer, p1: AbsPlayer):
         self.players = [p0, p1]
+        if isclass(board): # If the given board is the class type, initiate it for the first step
+            self.board_class = board
+            self.history: List[AbsBoardState] = [board()]
+        else: # If the given board is instance, keep it as the first step
+            self.board_class = type(board)
+            self.history: List[AbsBoardState] = [board]
 
-        self.board_class = board_class
-        self.history: List[AbsBoardState] = [board_class()]
         self.move_history: List[Any] = []
         self.time_data: List[float] = []
 
