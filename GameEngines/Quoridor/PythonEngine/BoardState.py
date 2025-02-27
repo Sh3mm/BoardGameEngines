@@ -108,8 +108,8 @@ class BoardState(BaseBoardState):
                 potential_lr[w[1]] = False
 
         return list(chain(
-            ((WallType.H, i) for i in np.where(potential_td)[0]),
-            ((WallType.V, i) for i in np.where(potential_lr)[0])
+            ((WallType.H, int(i)) for i in np.where(potential_td)[0]),
+            ((WallType.V, int(i)) for i in np.where(potential_lr)[0])
         ))
 
     def _get_jumps(self) -> List[_Jump]:
@@ -119,7 +119,7 @@ class BoardState(BaseBoardState):
 
         # if the other player is not next to the active one
         if o_pos not in dest:
-            return [(s_pos, d) for d in dest if d != -1]
+            return [(s_pos, int(d)) for d in dest if d != -1]
 
         jumps = []
         for d in dest:
@@ -127,13 +127,13 @@ class BoardState(BaseBoardState):
                 _dest = self._board[:, o_pos]
                 jump1 = s_pos + 2 * (o_pos - s_pos)
                 if 81 > jump1 >= 0 and jump1 in _dest:
-                    jumps.append((s_pos, jump1))
+                    jumps.append((s_pos, int(jump1)))
                     continue
                 else:
                     _dest = set(_dest).difference((jump1, -1, s_pos))
-                    jumps.extend((s_pos, d) for d in _dest)
+                    jumps.extend((s_pos, int(d)) for d in _dest)
             elif d != -1:
-                jumps.append((s_pos, d))
+                jumps.append((s_pos, int(d)))
         return jumps
 
     def winner(self) -> int:
