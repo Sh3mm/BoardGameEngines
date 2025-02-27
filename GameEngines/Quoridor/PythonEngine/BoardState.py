@@ -1,9 +1,8 @@
 from typing import Tuple, Set, Type, List
 
-from GameEngines.Quoridor.utilsTypes import MoveType, WallType, Wall, Jump, Move, PlayerInfo
+from GameEngines.Quoridor.utilsTypes import MoveType, WallType, Wall, Move, PlayerInfo
 from GameEngines.Quoridor.repr import _repr
 from GameEngines.Quoridor.PythonEngine.utils import init_board, validate_walls, cut_wall, _Wall, _Jump, _Move
-from GameEngines.Quoridor.PythonEngine.pathfinding import dfs
 from GameEngines.Quoridor.SaveModule import QuoridorSave
 from GameEngines import BaseBoardState, AbsSaveModule
 from GameEngines.cache_utils import cache_moves
@@ -88,7 +87,6 @@ class BoardState(BaseBoardState):
         if self._players[self._curr_pid - 1].walls > 0:
             walls = self._get_potential_walls()
             results = validate_walls(self._board, [p.pos for p in self._players], walls, self._walls)
-            #results = filter(self._is_legit_wall, walls)
             moves.update(self._from_local((MoveType.WALL, w)) for w in results)
 
         return moves
