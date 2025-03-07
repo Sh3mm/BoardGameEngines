@@ -1,10 +1,11 @@
 from pathlib import Path
 import json
-import numpy as np
 from typing import Union, Type, Dict, Any
-from GameEngines.abstract import AbsBoardState, AbsSaveModule
+
 from GameEngines import cache_utils
-from GameEngines.Quoridor.utilsTypes import to_move
+from GameEngines.abstract import AbsBoardState, AbsSaveModule
+from GameEngines.Quoridor.utilsTypes import PlayerInfo, to_move, WallType
+from GameEngines.Quoridor.PythonEngine.utils import cut_wall, init_board, _PlayerInfo
 
 
 class QuoridorSave(AbsSaveModule):
@@ -20,8 +21,11 @@ class QuoridorSave(AbsSaveModule):
     def load_state(file: Union[str, Path], state_type: Type[AbsBoardState]) -> AbsBoardState:
         data = json.loads(Path(file).read_text())
 
-        data["walls"] = set((tuple(w[0]), tuple(w[1])) for w in data["walls"])
-        data["board"] = None # todo
+        data["walls"] = set((WallType(w[0]), w[1]) for w in data["walls"])
+        data["board"] = init_board(9)
+        for w in data["walls"]:
+            cut_wall(data["board"], w, inplace=True)
+        data["players"] = [_PlayerInfo(*p) for p in data["players"]]
         return QuoridorSave._put_data(data, state_type)
 
     @staticmethod
@@ -33,7 +37,7 @@ class QuoridorSave(AbsSaveModule):
     @cache_utils.get_cache
     def _get_data(state: AbsBoardState) -> Dict[str, Any]:
         return {
-            "walls": state._walls,
+            "walls": list(state._walls),
             "players": state._players,
             "turn": state._turn,
             "curr_pid": state._curr_pid,

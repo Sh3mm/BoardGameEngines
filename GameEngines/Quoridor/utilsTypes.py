@@ -1,5 +1,6 @@
+from traceback import print_tb
 from typing import Any, Tuple, Union
-from dataclasses import dataclass
+from typing import NamedTuple
 from enum import IntEnum
 
 class MoveType(IntEnum):
@@ -16,10 +17,14 @@ Jump = Tuple[Coords, Coords]
 Wall = Tuple[WallType, Coords]
 Move = Tuple[MoveType, Union[Wall, Jump]]
 
-@dataclass(frozen=True)
-class PlayerInfo:
-    pos: int
+class PlayerInfo(NamedTuple):
+    pos: Coords
     walls: int
 
 def to_move(move: Any) -> Move:
-    pass # todo
+    if move[0] == MoveType.WALL:
+        return MoveType.WALL, (WallType(move[1][0]), (move[1][1][0], move[1][1][1]))
+    elif move[0] == MoveType.JUMP:
+        return MoveType.JUMP, ((move[1][0][0], move[1][0][1]), (move[1][1][0], move[1][1][1]))
+    else:
+        raise ValueError(f"{move} is cannot be converted to Move")

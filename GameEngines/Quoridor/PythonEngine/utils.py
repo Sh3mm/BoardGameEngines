@@ -1,15 +1,22 @@
-from typing import Tuple, List, Union, Set
+from typing import Tuple, List, Union, Set, NamedTuple
 import numpy as np
 from itertools import chain, product
 from functools import reduce
 
-from GameEngines.Quoridor.utilsTypes import WallType, MoveType
+from GameEngines.Quoridor.utilsTypes import WallType, MoveType, PlayerInfo
 from GameEngines.Quoridor.PythonEngine.pathfinding import dfs
 
 
 _Jump = Tuple[int, int]
 _Wall = Tuple[WallType, int]
 _Move = Tuple[MoveType, Union[_Wall, _Jump]]
+
+class _PlayerInfo(NamedTuple):
+    pos: int
+    walls: int
+
+    def from_local(self):
+        return PlayerInfo((self.pos// 9, self.pos % 9), self.walls)
 
 
 def init_board(size: int) -> np.ndarray:
