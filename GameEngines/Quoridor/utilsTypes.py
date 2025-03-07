@@ -18,7 +18,7 @@ Wall = Tuple[WallType, Coords]
 Move = Tuple[MoveType, Union[Wall, Jump]]
 
 class PlayerInfo(NamedTuple):
-    pos: int
+    pos: Coords
     walls: int
 
 def to_move(move: Any) -> Move:

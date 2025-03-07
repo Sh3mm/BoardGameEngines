@@ -2,7 +2,7 @@ from typing import Tuple, Set, Type, List
 
 from GameEngines.Quoridor.utilsTypes import MoveType, WallType, Wall, Move, PlayerInfo
 from GameEngines.Quoridor.repr import _repr
-from GameEngines.Quoridor.PythonEngine.utils import init_board, validate_walls, cut_wall, _Wall, _Jump, _Move
+from GameEngines.Quoridor.PythonEngine.utils import init_board, validate_walls, cut_wall, _Wall, _Jump, _Move, _PlayerInfo
 from GameEngines.Quoridor.SaveModule import QuoridorSave
 from GameEngines import BaseBoardState, AbsSaveModule
 from GameEngines.cache_utils import cache_moves
@@ -25,8 +25,8 @@ class BoardState(BaseBoardState):
         self._board = init_board(b_size)
         self._walls: Set[_Wall] = set()
         self._players = [ # Player position & walls left to play
-            PlayerInfo(b_size // 2, max_wall),
-            PlayerInfo(b_size**2 - 1 - b_size // 2, max_wall)
+            _PlayerInfo(b_size // 2, max_wall),
+            _PlayerInfo(b_size**2 - 1 - b_size // 2, max_wall)
         ]
 
     def __deepcopy__(self, memodict={}):
@@ -55,8 +55,8 @@ class BoardState(BaseBoardState):
     @property
     def board(self) -> Tuple[Set[Wall], Tuple[PlayerInfo, PlayerInfo]]:
         return (
-            set(self._from_local((MoveType.WALL, (w[0], (w[1] // 9, w[1] % 9))))[1] for w in self._walls),
-            tuple(self._players)
+            set(self._from_local((MoveType.WALL, w))[1] for w in self._walls),
+            (self._players[0].from_local(), self._players[1].from_local())
         )
 
     def __repr__(self):
@@ -65,19 +65,19 @@ class BoardState(BaseBoardState):
     def play(self, move: Move) -> 'BoardState':
         move = self._to_local(move)
 
-        old_info: PlayerInfo = self._players[self._curr_pid - 1]
+        old_info: _PlayerInfo = self._players[self._curr_pid - 1]
 
         new_state = self.copy()
         new_state._curr_pid = (self._curr_pid % 2) + 1
         new_state._turn += 1
 
         if move[0] is MoveType.JUMP:
-            new_state._players[self._curr_pid - 1] = PlayerInfo(move[1][1], old_info.walls)
+            new_state._players[self._curr_pid - 1] = _PlayerInfo(move[1][1], old_info.walls)
             return new_state
 
         new_state._walls.add(move[1])
         cut_wall(new_state._board, move[1], inplace=True)
-        new_state._players[self._curr_pid - 1] = PlayerInfo(old_info.pos, old_info.walls - 1)
+        new_state._players[self._curr_pid - 1] = _PlayerInfo(old_info.pos, old_info.walls - 1)
 
         return new_state
 

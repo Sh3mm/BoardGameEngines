@@ -5,7 +5,7 @@ from typing import Union, Type, Dict, Any
 from GameEngines import cache_utils
 from GameEngines.abstract import AbsBoardState, AbsSaveModule
 from GameEngines.Quoridor.utilsTypes import PlayerInfo, to_move, WallType
-from GameEngines.Quoridor.PythonEngine.utils import cut_wall, init_board
+from GameEngines.Quoridor.PythonEngine.utils import cut_wall, init_board, _PlayerInfo
 
 
 class QuoridorSave(AbsSaveModule):
@@ -25,7 +25,7 @@ class QuoridorSave(AbsSaveModule):
         data["board"] = init_board(9)
         for w in data["walls"]:
             cut_wall(data["board"], w, inplace=True)
-        data["players"] = [PlayerInfo(*p) for p in data["players"]]
+        data["players"] = [_PlayerInfo(*p) for p in data["players"]]
         return QuoridorSave._put_data(data, state_type)
 
     @staticmethod
